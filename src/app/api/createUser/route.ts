@@ -1,11 +1,34 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseConnection'
 
+/**
+ * Handles user sign up
+ * 1. Registers user with Supabase Authentication
+ * 2. Adds the user to the 'users' table in the database
+ * 
+ * @param request - A POST Request object with JSON body (request.body):
+ * {
+ *   email: string;
+ *   password: string;
+ * }
+ * 
+ * @returns { NextResponse } A JSON response:
+ * 
+ * 200 OK:
+ * { 
+ *   message: string;
+ *   user: SupabaseUser;
+ * }
+ * 
+ * 400 Bad Request:
+ * { 
+ *   error: string;
+ * }
+ */
+
 export async function POST(request: Request) {
 
-  const body = await request.json();
-  const email = body.email
-  const password = body.password
+  const { email, password } = await request.json();
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Missing email or password' }, { status: 400} );
