@@ -7,8 +7,28 @@ export default function User() {
 
   const router = useRouter();
 
-  const handleLogout = () => {
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+
+      const response = await fetch('/api/users/logoutUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+
+      if(!response.ok) {
+        throw new Error(result.error || 'Something went wrong');
+      }
+
+      console.log('Logout successful', result.message)
+      router.push('/')
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   }
 
   const handleAcceptInvite = () => {
@@ -25,7 +45,7 @@ export default function User() {
 
   return (
     <>
-      <Header email='test@gmail.com' groupName='Test Name'/>
+      <Header email='test@gmail.com' buttonName='logout' onClick={handleLogout}/>
       <div className='flex flex-col justify-center items-center p-2 gap-2'>
         <List 
           title='invites'

@@ -1,41 +1,48 @@
+drop table invites;
+drop table tasks;
+drop table members;
+drop table groups;
+drop table users;
+drop type invite_status;
+
 create table users (
-  id uuid primary key references auth.users(id),
+  user_id uuid primary key references auth.users(id),
   email text unique not null,
   active boolean not null default true,
   created_at timestamp default current_timestamp
 );
 
 create table groups (
-  id serial primary key,
+  group_id uuid primary key default uuid_generate_v4(),
   name text not null,
-  manager uuid not null references users(id),
+  creator_id uuid not null references users(user_id),
   created_at timestamp default current_timestamp
 );
 
 create table members (
-  user_id uuid not null references users(id),
-  group_id int not null references groups(id) on delete cascade,
+  user_id uuid not null references users(user_id),
+  group_id uuid not null references groups(group_id) on delete cascade,
   joined_at timestamp default current_timestamp,
   primary key (user_id, group_id)
 );
 
 create table tasks (
-  id serial primary key,
-  group_id int not null references groups(id) on delete cascade,
+  task_id uuid primary key default uuid_generate_v4(),
+  group_id uuid not null references groups(group_id) on delete cascade,
   description text not null,
-  created_by uuid not null references users(id),
+  creator_id uuid not null references users(user_id),
   created_at timestamp default current_timestamp,
-  claimed_by uuid references users(id),
+  claimer_id uuid references users(user_id),
   completed boolean not null default false
 );
 
-create type invite_status as enum ('pending', 'accepted', 'rejected');
+create type invite_status as enum ('pending', 'accepted', 'rejected', 'revoked');
 
 create table invites (
-  id serial primary key,
-  group_id int not null references groups(id) on delete cascade,
-  from_user uuid not null references users(id),
-  to_user uuid not null references users(id),
+  invite_id uuid primary key default uuid_generate_v4(),
+  group_id uuid not null references groups(group_id) on delete cascade,
+  from_user_id uuid not null references users(user_id),
+  to_user_id uuid not null references users(user_id),
   status invite_status not null default 'pending',
   created_at timestamp default current_timestamp
 );

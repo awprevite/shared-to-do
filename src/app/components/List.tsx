@@ -17,7 +17,7 @@ export default function List<T>({ title, items, renderItems, emptyMessage }: Lis
         ) : (
           <>
           <p>{title}</p>
-          <div className='flex flex-col w-full justify-center gap-2 bg-[var(--dark-accent)] rounded-lg border border-solid border-[var(--fg-color)] p-2'>
+          <div className='flex flex-col w-full justify-center gap-2 bg-[var(--dark-accent)] rounded-lg p-2'>
             {items.map((item, index) => (
               <div key={index} className='flex justify-start'>
                 {renderItems(item, index)}

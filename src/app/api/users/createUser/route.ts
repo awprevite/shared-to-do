@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import supabase from '@/utils/supabaseConnection'
+import { createUser } from '../../../../utils/supabaseDb'
 
 /**
  * Handles user sign up
@@ -34,27 +34,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing email or password' }, { status: 400} );
   }
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-
-  if(authError) {
-    return NextResponse.json({ error: authError.message }, { status: 400} );
-  }
-
-  if (authData.user) {
-    const { data: dbData, error: dbError } = await supabase
-      .from('users')
-      .insert([
-        {
-          id: authData.user.id,
-          email: authData.user.email,
-        }
-      ]);
-
-    if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 400} );
-    }
-
-    return NextResponse.json({ message: 'User created successfully', user: authData.user }, { status: 200 });
-
+  try {
+    const body = await createUser(email, password)
+    return NextResponse.json({ body: body}, {status: 200} )
+  } catch (error) {
+    return NextResponse.json({ error: error }, { status: 400 })
   }
 }

@@ -4,68 +4,40 @@ import { useRouter } from 'next/navigation'
 
 export default function Home() {
 
-  const id = 1
-  const name = 'Group Name'
-  const manager = '1f0fb479-77b5-4c88-b907-fd1cfd079abf' 
-
-  const handleCreateGroup = async () => {
+  const handleLogin = async () => {
 
     try {
-      const response = await fetch('api/createGroup', {
+
+      const response = await fetch('/api/users/loginUser', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, manager })
-      })
+        body: JSON.stringify({ email, password })
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('login response error:', result.error);
         throw new Error(result.error || 'Something went wrong');
       }
 
-      console.log('Game created');
+      console.log('User loggedin:', result);
+
+      router.push('/user')
 
     } catch (error) {
 
-      console.error('Error:', error);
+      console.error('login error:', error);
 
     }
-    
   }
 
-  const handleDeleteGroup = async () => {
-
-    try {
-      const response = await fetch('api/deleteGroup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id })
-      })
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Something went wrong');
-      }
-
-      console.log('Game deleted');
-
-    } catch (error) {
-
-      console.error('Error:', error);
-
-    }
-    
-  }
-  const handleCreate = async () => {
-
+  const handleSignup = async () => {
     try{
 
-      const response = await fetch('/api/createUser', {
+      const response = await fetch('/api/users/createUser', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -79,23 +51,15 @@ export default function Home() {
         throw new Error(result.error || 'Something went wrong');
       }
 
-      console.log('User created:', result.user);
+      console.log('User created:', result);
+
+      router.push('/user')
 
     } catch (error) {
 
       console.error('Signup error:', error);
 
     }
-  }
-
-  const handleLogin = async () => {
-    setErrorMessage('')
-    router.push('/user')
-  }
-
-  const handleSignup = async () => {
-    setErrorMessage('')
-    router.push('/user')
   }
 
   const [email, setEmail] = useState('');

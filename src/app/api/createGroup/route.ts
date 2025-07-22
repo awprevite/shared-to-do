@@ -14,7 +14,7 @@ import supabase from '@/utils/supabaseConnection'
  * @returns { NextResponse } A JSON response:
  * 
  * 200 OK:
- * { 
+ * {
  *   message: string;
  * }
  * 
