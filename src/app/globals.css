@@ -10,7 +10,8 @@
 
   --dark-accent: #242424;
   --light-accent: #2869e0;
-  --error-red: #ca2929;
+  --danger: #ca2929;
+  --success: #4ec754;
 
   color: var(--fg-color);
   background-color: var(--bg-color);

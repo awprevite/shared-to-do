@@ -1,21 +1,22 @@
-'use server'
-
+'use server';
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-
 import { createClient } from '@/utils/supabase/server'
+import { User, Group, Member, Task, Invite } from '@/utils/database/types'
 
-/* ------ Users ------ */
-
-export async function createUser ( email: string, password: string ) {
+/**
+ * @param email the email of the user to create
+ * @param password the password of the user to create
+ * 
+ * @return {Promise<void>} redirects to the user dashboard on success
+ * @throws {Error} if authentication sign up fails or the query fails
+ */
+export async function signUpUser ( email: string, password: string ): Promise<void> {
   const supabase = await createClient()
 
   const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
 
-  if (authError){
-    console.error('Error creating user:', authError.message)
-    redirect('/error')
-  }
+  if (authError) throw new Error(authError.message)
 
   if (authData.user) {
     const { data: dbData, error: dbError } = await supabase
@@ -28,35 +29,40 @@ export async function createUser ( email: string, password: string ) {
       ])
       .select()
 
-    if (dbError) {
-      console.error('Error inserting user into database:', dbError.message)
-      redirect('/error')
-    }
-
-    revalidatePath('/', 'layout')
-    redirect('/user')
+    if (dbError) throw new Error(dbError.message)
   }
 }
 
-export async function loginUser ( email: string, password: string ) {
+/**
+ * @param email the email of the user to log in
+ * @param password the password of the user to log in
+ * 
+ * @return {Promise<void>} redirects to the user dashboard on success
+ * @throws {Error} if authentication sign in fails or the query fails
+ */
+export async function signInUser ( email: string, password: string ): Promise<void> {
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) redirect('/error')
+  console.log('Sign in data:', data)
 
-  revalidatePath('/', 'layout')
+  if (error) throw new Error(error.message)
+
   redirect('/user')
 }
 
-export async function logoutUser () {
+/**
+ * @returns {Promise<void>} redirects to the home page on success
+ * @throws {Error} if sign out fails
+ */
+export async function logoutUser (): Promise<void> {
   const supabase = await createClient()
 
   const { error } = await supabase.auth.signOut()
 
-  if (error) redirect('/error')
+  if (error) throw new Error(error.message)
 
-  revalidatePath('/', 'layout')
   redirect('/')
 }
 
@@ -125,56 +131,71 @@ export async function fetchMembers ( group_id: string ) {
   return data
 }
 
-export async function fetchInvites ( user_id: string ) {
+/**
+ * @param to_user_id the user ID to fetch invites for
+ * 
+ * @returns {Promise<Invite[]>} an array of pending invites for the user
+ * @throws {Error} if the query fails
+ */
+export async function fetchInvites (to_user_id: string): Promise<Invite[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('invites')
     .select('*')
-    .eq('to_user_id', user_id)
+    .eq('to_user_id', to_user_id)
     .eq('status', 'pending')
 
   if (error) throw new Error(error.message)
 
+  console.log('Fetched invites:', data)
+
   return data
 }
 
-export async function fetchGroups ( user_id: string ) {
+/**
+ * @param user_id the user ID to fetch groups for
+ * 
+ * @returns {Promise<any[]>} an array of groups the user is a member of
+ * @throws {Error} if the query fails
+ */
+export async function fetchGroups(user_id: string): Promise<any[]> {
   const supabase = await createClient()
 
-  const { data: memberData, error: memberError } = await supabase
-  .from('members')
-  .select('*')
-  .eq('user_id', user_id)
+  const { data, error } = await supabase
+    .from('members')
+    .select('group_id, groups(*)')
+    .eq('user_id', user_id)
 
-  if (memberError) throw new Error(memberError.message)
+  if (error) throw new Error(error.message)
 
-  if (memberData && memberData.length > 0) {
-    const groupIds = memberData.map(member => member.group_id)
-    const { data: groupData, error: groupError } = await supabase
-      .from('groups')
-      .select('*')
-      .in('group_id', groupIds)
+  console.log('Fetched groups:', data)
 
-    if (groupError) throw new Error(groupError.message)
-
-      return groupData
-  } else {
-    console.log('No groups found for user')
-    return []
-  }
+  return data
 }
 
-export async function fetchUser () {
+/**
+ * @returns {Promise<User | null>} the authenticated user or null if not authenticated
+ * @throws {Error} if authentication fails
+ */
+export async function fetchUser(): Promise<User | null> {
   const supabase = await createClient()
-    const { data, error } = await supabase.auth.getUser();
 
-    if( !data || error ) {
-      console.log('Error fetching user')
-      return
-    }
-  
-  return data.user;
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+
+  if (authError) throw new Error(authError.message)
+
+  if (authData.user) {
+    const { data: dbData, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', authData.user.id)
+
+    if (dbError) throw new Error(dbError.message)
+
+    return dbData[0];
+  }
+  return null;
 }
 
 // /* ------ Groups ------ */
@@ -216,28 +237,36 @@ export async function createGroup ( name: string , creator_id: string ) {
   }
 }
 
-export async function totalUsers() {
+/**
+ * @returns {Promise<number>} the total number of users in the 'users' table
+ * @throws {Error} if the query fails
+ */
+export async function totalUsers(): Promise<number> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from('users')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'exact', head: true })
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message)
 
-  return data
+  return count ?? 0
 }
 
-export async function totalGroups() {
+/**
+ * @returns {Promise<number>} the total number of groups in the 'groups' table
+ * @throws {Error} if the query fails
+ */
+export async function totalGroups(): Promise<number> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from('groups')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'exact', head: true })
 
   if (error) throw new Error(error.message);
 
-  return data
+  return count ?? 0
 }
 
 // export async function deleteGroup ( group_id: UUID ) {
@@ -307,20 +336,25 @@ export async function fetchGroupInvites ( group_id: string ) {
     return data
 }
 
-// export async function deleteInvite (group_id: UUID, from_user_id: UUID, to_user_id: UUID ) {
+export async function updateInvite (invite_id: string, newStatus: 'accepted' | 'rejected' | 'revoked') {
+  const supabase = await createClient()
 
-//   const { data, error } = await supabase
-//     .from('invites')
-//     .update({ status: 'revoked' })
-//     .eq('group_id', group_id)
-//     .eq('from_user_id', from_user_id)
-//     .eq('to_user_id', to_user_id)
-//     .select()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-//     if ( error ) throw new Error(error.message);
+  if( authError || !authData?.user ) throw new Error('User not authenticated')
 
-//     return data
-// }
+  const { data, error } = await supabase
+    .from('invites')
+    .update({ status: newStatus })
+    .eq('invite_id', invite_id)
+    .select('*')
+
+  console.log(data)
+
+  if ( error ) throw new Error(error.message);
+
+  return data
+}
 
 export async function acceptInvite (group_id: string, to_user_id: string ) {
   const supabase = await createClient()

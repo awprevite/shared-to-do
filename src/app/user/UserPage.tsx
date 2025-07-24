@@ -3,41 +3,44 @@ import Header from '../components/Header'
 import List from '../components/List'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { logoutUser, fetchInvites, fetchGroups, fetchUser, createGroup, acceptInvite } from '../../utils/supabase/actions'
+import { logoutUser, fetchUser, fetchInvites, fetchGroups, createGroup, updateInvite } from '../../utils/supabase/actions'
 import { Invite, Group } from '../../utils/database/types'
-import { group } from 'console';
 
 export default function UserPage() {
 
   const router = useRouter();
 
-  const [email, setEmail] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string>('');
   const [invites, setInvites] = useState<Invite[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupName, setGroupName] = useState<string>('');
 
   useEffect(() => {
 
-    const fetchUserInfo = async () => {
+    const fetchData = async () => {
+      try{
 
-      const user = await fetchUser();
+        const user = await fetchUser();
+        if (!user) {
+          router.push('/login');
+          return
+        }
 
-      if( !user ) return
-
-      const userId = user.id
-      setUserId(userId);
-
-      setEmail(user.email || '');
-
-      const invites = await fetchInvites(userId);
-      setInvites(invites);
-
-      const groups = await fetchGroups(userId);
-      setGroups(groups);
+        if (user.email && user.user_id) {
+          setEmail(user.email)
+          setUserId(user.user_id)
+        }
+      
+      const [invites, groups] = await Promise.all([fetchInvites(user.user_id), fetchGroups(user.user_id)])
+        setInvites(invites)
+        setGroups(groups)
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     }
 
-    fetchUserInfo();
+    fetchData();
   }, [])
 
   const handleLogout = async () => {
@@ -52,8 +55,8 @@ export default function UserPage() {
     setGroupName(e.target.value);
   }
 
-  const handleAcceptInvite = (group_id: string, to_user_id: string) => {
-    acceptInvite(group_id, to_user_id)
+  const handleUpdateInvite = (invite_id: string, new_status: 'accepted' | 'rejected') => {
+    updateInvite(invite_id, new_status)
   }
 
   const handleRejectInvite = () => {
@@ -75,8 +78,8 @@ export default function UserPage() {
             <div className='flex w-full justify-between'>
               <p>{invite.status}</p>
               <div className='flex gap-6'>
-                <button onClick={() => handleAcceptInvite(invite.group_id, invite.to_user_id)}>{'\u2713'}</button>
-                <button onClick={handleRejectInvite}>{'\u2715'}</button>
+                <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}>{'\u2713'}</button>
+                <button onClick={() => handleUpdateInvite(invite.invite_id, 'rejected')}>{'\u2715'}</button>
               </div>
             </div>
           )}

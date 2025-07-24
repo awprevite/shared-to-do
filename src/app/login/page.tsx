@@ -1,43 +1,50 @@
-'use client';
+'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react';
-import { createUser, loginUser, logoutUser } from '../../utils/supabase/actions'
+import { useState } from 'react'
+import { signUpUser, signInUser } from '../../utils/supabase/actions'
 
 export default function LoginPage() {
 
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [status, setStatus] = useState<boolean>(false);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+  const handleSignInUser = async () => {
+    try {
+      await signInUser(email, password);
+    } catch (error) {
+      console.error('Error signing in:', error);
+    }
   }
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-  }
+  const handleSignUpUser = async () => {
+    try {
+      await signUpUser(email, password);
+    } catch (error) {
+      console.error('Error signing up:', error);
+    }
 
-  const handleLoginUser = async () => {
-    loginUser(email, password);
-  }
-
-  const handleCreateUser = async () => {
-    createUser(email, password);
+    setStatus(true);
   }
 
   return (
-    <div className='flex flex-col justify-center items-center h-screen gap-6'>
-      <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ email } onChange={ handleEmailChange } placeholder='Email' />
-      <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ password } onChange={ handlePasswordChange } placeholder='Password' />
-      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={ handleLoginUser }>Login</button>
-      <p>Or</p>
-      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={ handleCreateUser }>Create Account</button>
-      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => router.push('/')}>Back to home</button>
-      <div className='flex flex-col justify start w-sm gap-2'>
-        <p>After pressing create account this page will stay the same, follow these steps:</p>
-        <p>1. Check you email for confirmation and press confirm</p>
-        <p>2. With your credentials present press login and you should be redirected to the user dashboard</p>
+    <div className='flex flex-col justify-center items-center gap-6 translate-y-50'>
+      <p className='text-7xl p-10'>Shared To Do</p>
+      <div className='flex flex-col justify-center items-center gap-6'>
+        <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' type='email' value={ email } onChange={ e => setEmail(e.target.value) } placeholder='Email' />
+        <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' type='password' value={ password } onChange={ e => setPassword(e.target.value) } placeholder='Password' />
+        <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={ handleSignInUser }>Login</button>
+        <p>Or</p>
+        <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={ handleSignUpUser }>Create Account</button>
+        <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => router.push('/')}>Back to home</button>
+        { status && (
+          <div className='flex flex-col text-center'>
+            <p className='text-4xl text-[var(--success)] p-2'>Account Created</p>
+            <p className='w-md'>Please check your email and confirm your account, then return to this page to log in</p>
+          </div>
+        )}
       </div>
     </div>
   )

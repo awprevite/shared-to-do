@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Shared To Do",
   description: "Multi-user to do list",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
