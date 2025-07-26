@@ -3,7 +3,9 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
 import { signUpUser, signInUser } from '@/utils/supabase/actions/auth'
+import { mapSupabaseError } from '@/utils/supabase/errors/errors'
 import { Square, SquareCheckBig } from 'lucide-react'
+import Notification from '../components/Notification'
 
 export default function Login() {
  
@@ -14,89 +16,96 @@ export default function Login() {
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [status, setStatus] = useState<boolean>(false);
   const [state, setState] = useState<'Sign in' | 'Sign up'>('Sign in')
+  const [message, setMessage] = useState<string | null>(null)
+  const triggerNotification = (message: string) => setMessage(message)
 
   const handleAuthenticate = async () => {
     try {
       if(state === 'Sign in') {
         await signInUser(email, password)
+        //triggerNotification('Signed in)
       } else if (state === 'Sign up') {
         await signUpUser(email, password)
-        setStatus(true)
+        triggerNotification('Account created, please check your email and confirm your account, then return to this page to log in')
       }
     } catch (error) {
-      console.error('Sign Authentication error: ', error)
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
     }
   }
 
-  // useEffect(()  => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const [users, groups] = await Promise.all([totalUsers(), totalGroups()])
-  //       setUsers(users);
-  //       setGroups(groups);
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //     }
-  //   }
-  //   fetchData();
-  // }, [])
+  useEffect(()  => {
+    const fetchData = async () => {
+      try {
+        const [users, groups] = await Promise.all([totalUsers(), totalGroups()])
+        setUsers(users);
+        setGroups(groups);
+      } catch (error) {
+        if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      }
+    }
+    fetchData();
+  }, [])
 
   return (
     <>
+      <Notification message={message} onClear={() => setMessage(null)} />
+
       {/* Entire screen */}
-      <div className='flex'>
+      <div className='flex flex-col md:flex-row h-scren'>
 
         {/* Left side screen */}
-        <div className='flex flex-col justify-center items-center gap-6 bg-check h-screen w-full'>
+        <div className='hidden lg:flex flex-col justify-center items-center gap-6 bg-check h-screen w-1/2'>
 
-          <p className='text-7xl pb-15'>Shared To Do</p>
+          <p className='text-5xl md:text-7xl pb-15'>Shared To Do</p>
 
           {/* Check list */}
-          <div className='flex flex-col items-start gap-10'>
+          <div className='flex flex-col items-start gap-10 max-w-xl'>
 
             {/* Check rows */}
-            <div className='flex gap-4 justify-start items-center'>
-              <SquareCheckBig />
-              <p className='text-2xl p-2'>Multi-user to do and task lists</p>
+            <div className='flex gap-4 justify-start items-center p-2'>
+              <SquareCheckBig className='min-w-6'/>
+              <p className='text-2xl'>Multi-user to do and task lists</p>
             </div>
 
-            <div className='flex gap-4 justify-start items-center'>
-              <SquareCheckBig />
-              <p className='text-2xl p-2'>{`Powering ${users} ${users == 1 ? 'user' : 'users'} and ${groups} ${groups == 1 ? 'group' : 'groups'}`}</p>
+            <div className='flex gap-4 justify-start items-center p-2'>
+              <SquareCheckBig className='min-w-6'/>
+              <p className='text-2xl'>{`Powering ${users} ${users == 1 ? 'user' : 'users'} and ${groups} ${groups == 1 ? 'group' : 'groups'}`}</p>
             </div>
 
-            <div className='flex gap-4 justify-start items-center'>
-              <Square />
-              <p className='text-2xl p-2'>Access your dashboard to get started</p>
+            <div className='flex gap-4 justify-start items-center p-2'>
+              <Square className='min-w-6'/>
+              <p className='text-2xl'>Access your dashboard to get started</p>
             </div>
 
           </div>
         </div>
 
         {/* Right side screen container */}
-        <div className='flex flex-col justify-center items-center gap-2 bg-[var(--dark-accent)] h-screen w-full'>
+        <div className='flex flex-col justify-center items-center p-4 gap-2 bg-[var(--dark-accent)] w-full lg:w-1/2 h-screen'>
 
-          <p className='text-5xl p-10'>{state === 'Sign in' ? 'Sign In' : 'Sign Up'}</p>
+          <p className='text-5xl p-6'>{state === 'Sign in' ? 'Sign In' : 'Sign Up'}</p>
 
           {/* Form */}
-          <div className='flex flex-col justify-center items-center'>
+          <div className='flex flex-col justify-center items-center w-full max-w-sm'>
 
-            <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' type='email' value={ email } onChange={ e => setEmail(e.target.value) } placeholder='Email' />
-            <input className='border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 w-sm rounded-lg focus:outline-none focus:ring-0' type='password' value={ password } onChange={ e => setPassword(e.target.value) } placeholder='Password' />
+            {/* Inputs */}
+            <input className='border border-solid border-[var(--fg-color)] p-2 rounded-lg w-full focus:outline-none focus:ring-0' type='email' value={ email } onChange={ e => setEmail(e.target.value) } placeholder='Email' />
+            <input className='border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 rounded-lg w-full focus:outline-none focus:ring-0' type='password' value={ password } onChange={ e => setPassword(e.target.value) } placeholder='Password' />
 
+            {/* Reset password or hold space */}
             {state === 'Sign in' ? (
               <div className='flex justify-start w-full gap-2'>
                 <p className='text-sm'>Forgot password?</p>
-                <button className='text-sm font-semibold' onClick={() => alert('Need to implement reset password')}>Reset</button>
+                <button className='text-sm font-semibold' onClick={() => triggerNotification('Need to implement reset password')}>Reset</button>
               </div>
             ) : (
               <p className='text-sm'>&nbsp;</p>
             )}
             
-            <button className='bg-[var(--light-accent)] p-2 mt-6 mb-2 w-sm rounded-lg' onClick={ handleAuthenticate }>{state}</button>
+            <button className='bg-[var(--light-accent)] p-2 mt-6 mb-2 w-full rounded-lg' onClick={ handleAuthenticate }>{state}</button>
 
+            {/* Toggle sign in / sign up */}
             { state === 'Sign in' ? (
               <div className='flex justify-start w-full gap-2'>
                 <p className='text-sm'>Don't have an account?</p>
@@ -109,13 +118,15 @@ export default function Login() {
               </div>
             )}
 
-            <div className='flex items-center w-full mt-8'>
-              <hr className='flex-grow border-t border' />
+            {/* Divider */}
+            <div className='flex items-center w-full mt-6'>
+              <hr className='w-full max-w-4xl border-t border my-6' />
               <p className='px-4'>or</p>
-              <hr className='flex-grow border-t border' />
+              <hr className='w-full max-w-4xl border-t border my-6' />
             </div>
 
-            <button className='flex justify-center items-center border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 w-sm rounded-lg' onClick={ () => alert('Need to implement authenticate with google') }>
+            {/* Google sign in */}
+            <button className='flex justify-center items-center border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 w-full rounded-lg' onClick={ () => triggerNotification('Need to implement authenticate with google') }>
 
               {/* Google logo */}
               <svg className="w-5 h-5 mr-2" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
@@ -128,13 +139,6 @@ export default function Login() {
               {state} with Google
             </button>
 
-            {/* Sign up next steps */}
-            { status && (
-              <div className='flex flex-col text-center'>
-                <p className='text-4xl text-[var(--success)] p-2'>Account Created</p>
-                <p className='w-md'>Please check your email and confirm your account, then return to this page to log in</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ type ListProps<T> = {
 export default function List<T>({ title, items, renderItems }: ListProps<T>){
 
   return (
-    <div className='flex flex-col justify-start w-full px-20 py-6'>
+    <div className='flex flex-col justify-start items-start w-full w-full py-6'>
       <p className='font-bold p-2'>{title}</p>
           
         <div className='flex flex-col w-full justify-center gap-2 bg-[var(--dark-accent)] rounded-lg'>

@@ -8,6 +8,7 @@ import { fetchUser } from '@/utils/supabase/actions/users'
 import { checkAccess, fetchMembers, updateMemberRole, deleteMember } from '@/utils/supabase/actions/members'
 import { fetchGroupInvites, createInvite, updateInvite } from '@/utils/supabase/actions/invites'
 import { fetchTasks, createTask, deleteTask, updateTask } from '@/utils/supabase/actions/tasks'
+import { mapSupabaseError } from '@/utils/supabase/errors/errors'
 import { deleteGroup } from '@/utils/supabase/actions/groups'
 import { Square, SquareCheckBig, Trash } from 'lucide-react'
 import Notification from '../../components/Notification'
@@ -27,6 +28,8 @@ export default function Group({ groupId }: GroupProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [groupInvites, setGroupInvites] = useState<Invite[]>([]);
+  const [message, setMessage] = useState<string | null>(null)
+  const triggerNotification = (message: string) => setMessage(message)
 
   useEffect(() => {
 
@@ -56,53 +59,82 @@ export default function Group({ groupId }: GroupProps) {
         setGroupInvites(invites);
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        if (error instanceof Error) triggerNotification(mapSupabaseError(error))
       }
     }
     fetchData()
   }, [])
 
   const handleUpdateTask = async (task_id: string, new_status: 'pending' | 'claimed' | 'completed', claimer_id: string) => {
-    setTasks(await updateTask(task_id, new_status, claimer_id))
+    try {
+      setTasks(await updateTask(task_id, new_status, claimer_id))
+      triggerNotification(`Task status set to ${new_status}`)
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleCreateInvite = async () => {
-    setInviteEmail('')
-    setGroupInvites(await createInvite(groupId, user!.user_id, inviteEmail));
+    try {
+      setInviteEmail('')
+      setGroupInvites(await createInvite(groupId, user!.user_id, inviteEmail));
+      triggerNotification('Invite sent')
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleUpdateInvite = async (invite_id: string) => {
-    setGroupInvites(await updateInvite(invite_id, 'revoked'))
+    try {
+      setGroupInvites(await updateInvite(invite_id, 'revoked'))
+      triggerNotification('invite revoked')
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleCreateTask = async () => {
-    setTaskDescription('')
-    setTasks(await createTask(groupId, taskDescription, user!.user_id))
+    try {
+      setTaskDescription('')
+      setTasks(await createTask(groupId, taskDescription, user!.user_id))
+      triggerNotification('Task created')
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleDeleteMember = async (user_id: string) => {
-    setMembers(await deleteMember(groupId, user_id))
+    try {
+      setMembers(await deleteMember(groupId, user_id))
+      triggerNotification('Member removed')
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleUpdateMemberRole = async (user_id: string, new_role: 'admin' | 'member') => {
-    setMembers(await updateMemberRole(groupId, user_id, new_role))
+    try {
+      setMembers(await updateMemberRole(groupId, user_id, new_role))
+      triggerNotification(`Member set to ${new_role}`)
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
 
   const handleDeleteTask = async (task_id: string) => {
-    setTasks(await deleteTask(task_id))
+    try {
+      setTasks(await deleteTask(task_id))
+      triggerNotification('Task deleted')
+    } catch (error) {
+      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    }
   }
-
-  const [message, setMessage] = useState<string | null>(null)
-  const triggerNotification = (message: string) => setMessage(message)
 
   if(!user) return <p>No user</p>
 
   const adminView = (
     <div className='flex flex-col items-center'>
       <Header email={user!.email} groupName={groupId} buttonName='Back' onClick={() => router.push('/user')}/>
-
-      <button onClick={() => triggerNotification('Notification')}>trigger notification</button>
-      <button onClick={() => triggerNotification('Other')}>trigger other</button>
       <Notification message={message} onClear={() => setMessage(null)} />
 
       <div className='flex flex-col justify-center items-center p-2 gap-2 max-w-7xl min-w-lg'>
@@ -116,9 +148,9 @@ export default function Group({ groupId }: GroupProps) {
               {/* Completetion check box */}
               <div className='flex justify-start'>
                 { task.status === 'pending' ? (
-                  <button onClick={() => alert('Task must be claimed before it can be completed')}><Square /></button>
+                  <button onClick={() => triggerNotification('Task must be claimed before it can be completed')}><Square /></button>
                 ) : task.status === 'claimed' ? (
-                  <button onClick={() => handleUpdateTask(task.task_id, 'completed', user!.user_id)}><Square /></button>
+                  <button onClick={() => {task.claimer_id === user!.user_id ? handleUpdateTask(task.task_id, 'completed', user!.user_id) : triggerNotification('Cannot complete a task claimed by someone else')}}><Square /></button>
                 ) : (
                   <button onClick={() => handleUpdateTask(task.task_id, 'claimed', user!.user_id)}><SquareCheckBig /></button>
                 )}
