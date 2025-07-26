@@ -11,7 +11,8 @@
   --dark-accent: #242424;
   --light-accent: #2869e0;
   --danger: #ca2929;
-  --success: #4ec754;
+  --neutral: #ffff00;
+  --success: #00ff00;
 
   color: var(--fg-color);
   background-color: var(--bg-color);
@@ -27,4 +28,13 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+button {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+button:hover {
+ transform: scale(1.05);
 }

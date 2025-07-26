@@ -69,40 +69,58 @@ export default function UserPage() {
   }
 
   if(!user) return <p>No user</p>
+
   if(!user.active) return (
     <div className='flex flex-col justify-center items-center p-2 gap-2'>
       <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateUser(user.user_id, true)}>Activate Account</button>
     </div>
   )
+
   return (
     <>
       <Header email={user!.email} buttonName='Sign out' onClick={handleSignOut}/>
-      <div className='flex flex-col justify-center items-center p-2 gap-2'>
-        <List 
-          title='invites'
-          items={invites} 
-          renderItems={(invite) => (
-            <div className='flex w-full justify-between'>
-              <p>{invite.group_id}</p>
-              <div className='flex gap-6'>
-                <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check /></button>
-                <button onClick={() => handleUpdateInvite(invite.invite_id, 'rejected')}><X /></button>
-              </div>
-            </div>
-          )}
-          emptyMessage='No invites to display' 
-        />
-        <List title='groups'
-          items={groups}
-          renderItems={(group) => (
-            <button onClick={() => handleGroupSelect(group.group_id)}>{group.name}</button>
-          )}
-          emptyMessage='No groups to display'
-        />
+      
+      <div className='flex flex-col justify-center items-center'>
+      
+        <div className='flex justify-between items-center p-2 w-full'>
 
-        <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ groupName } onChange={ e => setGroupName(e.target.value) } placeholder='Group Name' />
-        <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={handleCreateGroup}>Create Group</button>
-        <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateUser(user.user_id, false)}>Deactivate Account</button>
+          {/* Groups list */}
+          <List title='Groups'
+            items={groups}
+            renderItems={(group) => (
+              <button onClick={() => handleGroupSelect(group.group_id)}>{group.name}</button>
+            )}
+          />
+
+          {/* Invites list */}
+          <List 
+            title='Invites'
+            items={invites} 
+            renderItems={(invite) => (
+              <div className='flex w-full justify-between'>
+                <p>{invite.group_id}</p>
+                <div className='flex gap-6'>
+                  <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check /></button>
+                  <button onClick={() => handleUpdateInvite(invite.invite_id, 'rejected')}><X /></button>
+                </div>
+              </div>
+            )}
+          />
+        </div>
+
+        <div className='flex items-center w-full'>
+          <hr className='flex border-t border w-full m-8' />
+        </div>
+
+        <div className='flex justify-between items-center p-2 w-full'>
+          <div className='flex flex-col justify-center items-center bg-[var(--dark-accent)] rounded-lg w-full mx-20 py-6'>
+            <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ groupName } onChange={ e => setGroupName(e.target.value) } placeholder='Group Name' />
+            <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg' onClick={handleCreateGroup}>Create Group</button>
+          </div>
+          <div className='flex flex-col justify-center items-center bg-[var(--dark-accent)] rounded-lg w-full mx-20 py-6'>
+            <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-sm rounded-lg' onClick={() => handleUpdateUser(user.user_id, false)}>Deactivate Account</button>
+          </div>
+        </div>
       </div>
     </>
   )

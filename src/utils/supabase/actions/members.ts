@@ -31,22 +31,22 @@ export async function fetchMembers( group_id: string ): Promise<Member[]> {
  * @param group_id the ID of the group to check
  * @param user_id the ID of the user to check
  * 
- * @returns {Promise<boolean>} true if the user is an admin or creator, false otherwise
+ * @returns {Promise<'member' | 'admin' | 'creator'>}
  * @throws {Error} if the query fails
  */
-export async function checkAdmin( group_id: string, user_id: string ): Promise<boolean> {
+export async function checkAccess( group_id: string, user_id: string ): Promise<'member' | 'admin' | 'creator'> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('members')
-    .select('*')
+    .select('role')
     .eq('group_id', group_id)
     .eq('user_id', user_id)
-    .in('role', ['admin', 'creator'])
+    .single()
 
   if (error) throw new Error(error.message)
 
-  return data && data.length > 0
+  return data.role
 }
 
 /**
