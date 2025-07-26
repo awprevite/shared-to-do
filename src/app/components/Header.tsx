@@ -10,10 +10,10 @@ type HeaderProps = {
 export default function Header ({ email, groupName='', buttonName, onClick }: HeaderProps) {
 
   return(
-    <div className='flex w-full justify-between items-center bg-[var(--dark-accent)] px-6 py-2'>
+    <div className='flex w-full justify-between items-center bg-[var(--dark-accent)] px-6 py-3'>
       <p>{email}</p>
       <p>{groupName}</p>
-      <button className='bg-[var(--light-accent)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={onClick}>{buttonName}</button>
+      <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] w-20 py-1 rounded-md transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={onClick}>{buttonName}</button>
     </div>
   )
 }

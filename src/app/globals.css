@@ -21,3 +21,10 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.bg-check {
+  background-image: url('/checkBackground.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

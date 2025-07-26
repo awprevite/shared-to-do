@@ -2,9 +2,14 @@
 import Header from '../../components/Header'
 import List from '../../components/List'
 import { useRouter } from 'next/navigation'
-import { Task, Member, Invite } from '@/utils/database/types'
-import { useState, useEffect, useRef } from 'react'
-import { fetchUser, checkManager, fetchTasks, fetchMembers, createTask, createInvite, updateInvite, fetchGroupInvites } from '@/utils/supabase/actions'
+import { User, Task, Member, Invite } from '@/utils/database/types'
+import { useState, useEffect } from 'react'
+import { fetchUser } from '@/utils/supabase/actions/users'
+import { checkAdmin, fetchMembers, updateMemberRole, deleteMember } from '@/utils/supabase/actions/members'
+import { fetchGroupInvites, createInvite, updateInvite } from '@/utils/supabase/actions/invites'
+import { fetchTasks, createTask, deleteTask, updateTask } from '@/utils/supabase/actions/tasks'
+import { deleteGroup } from '@/utils/supabase/actions/groups'
+import { Trash } from 'lucide-react'
 
 type GroupProps = {
   groupId: string;
@@ -14,100 +19,104 @@ export default function Group({ groupId }: GroupProps) {
 
   const router = useRouter();
 
+  const [adminAccess, setAdminAccess] = useState<boolean>(false);
   const [taskDescription, setTaskDescription] = useState<string>('');
   const [inviteEmail, setInviteEmail] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [groupInvites, setGroupInvites] = useState<Invite[]>([]);
-  const manager = useRef<boolean>(false);
 
   useEffect(() => {
 
-    const setManager = async () => {
-      const user = await fetchUser();
+    const fetchData = async () => {
+      try {
 
-      if( !user ) return
+        const user = await fetchUser();
 
-      const userId = user.id
-      setUserId(userId);
+        if(!user) {
+          router.push('/login');
+          return
+        }
+        setUser(user)
 
-      setEmail(user.email || '');
+        const [isAdmin, tasks, members, invites] = await Promise.all([
+          checkAdmin(groupId, user.user_id),
+          fetchTasks(groupId),
+          fetchMembers(groupId),
+          fetchGroupInvites(groupId)
+        ]);
 
-      const isManager = await checkManager(groupId, userId)
-      manager.current = isManager
-      console.log('Is Manager:', manager.current);
+        console.log('Fetched data:', { isAdmin, tasks, members, invites });
+
+        setAdminAccess(isAdmin);
+        setTasks(tasks);
+        setMembers(members);
+        setGroupInvites(invites);
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     }
-
-    const fetchGroupData = async () => {
-      const tasks = await fetchTasks(groupId);
-      setTasks(tasks);
-
-      const members = await fetchMembers(groupId);
-      setMembers(members);
-
-      const invites = await fetchGroupInvites(groupId);
-      setGroupInvites(invites);
-    }
-
-    setManager();
-    fetchGroupData();
-
+    fetchData()
   }, [])
 
-  const handleExitGroup = () => {
-    router.push('/user')
+  const handleUpdateTask = async (task_id: string, new_status: 'pending' | 'claimed' | 'completed', claimer_id: string) => {
+    setTasks(await updateTask(task_id, new_status, claimer_id))
   }
 
-  const handleClaimTask = () => {
-    
+  const handleCreateInvite = async () => {
+    setInviteEmail('')
+    setGroupInvites(await createInvite(groupId, user!.user_id, inviteEmail));
   }
 
-  const handleCompleteTask = () => {
-
+  const handleUpdateInvite = async (invite_id: string) => {
+    setGroupInvites(await updateInvite(invite_id, 'revoked'))
   }
 
-  const handleInviteEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInviteEmail(e.target.value);
-  }
-  const handleCreateInvite = () => {
-    createInvite(groupId, userId!, inviteEmail);
-  }
-  const handleUpdateInvite = (invite_id: string) => {
-
-    console.log(updateInvite(invite_id, 'revoked'))
+  const handleCreateTask = async () => {
+    setTaskDescription('')
+    setTasks(await createTask(groupId, taskDescription, user!.user_id))
   }
 
-  const handleTaskDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTaskDescription(e.target.value);
-  }
-  const handleCreateTask = () => {
-    createTask(groupId, taskDescription, userId!)
-  }
-  const handleRemoveMember = (user_id: string) => {
-
+  const handleDeleteMember = async (user_id: string) => {
+    setMembers(await deleteMember(groupId, user_id))
   }
 
-  const handleUpdateMemberRole = (user_id: string, new_role: 'admin' | 'member') => {
+  const handleUpdateMemberRole = async (user_id: string, new_role: 'admin' | 'member') => {
+    setMembers(await updateMemberRole(groupId, user_id, new_role))
   }
 
+  const handleDeleteTask = async (task_id: string) => {
+    setTasks(await deleteTask(task_id))
+  }
+
+  if(!user) return <p>No user</p>
   const adminView = (
     <div className='flex flex-col items-center'>
-      <Header email={email} groupName={groupId} buttonName='Back' onClick={handleExitGroup}/>
-      <div className='flex flex-col jkustify-center items-center p-2 gap-2 max-w-6xl min-w-lg'>
+      <Header email={user!.email} groupName={groupId} buttonName='Back' onClick={() => router.push('/user')}/>
+      <div className='flex flex-col jkustify-center items-center p-2 gap-2 max-w-7xl min-w-lg'>
         <List
           title='Tasks'
           items={tasks}
           renderItems={( task ) => (
-            <div className='grid grid-cols-5 w-full gap-4 items-center'>
-              <p className='text-left truncate col-span-3'>{task.description}</p>
+            <div className='grid grid-cols-7 w-full gap-4 items-center'>
+              <p className='text-left truncate col-span-2'>{task.description}</p>
               <p>{task.status}</p>
               { task.claimer_id ? (
                 <p>{task.claimer_id}</p>
               ) : (
-                <button className='bg-[var(--light-accent)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={handleClaimTask}>Claim</button>
+                <button className='bg-[var(--light-accent)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateTask(task.task_id, 'claimed', user!.user_id)}>Claim</button>
               )}
+              {task.status === 'claimed' ? (
+                <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateTask(task.task_id, 'pending', user!.user_id)}>UnClaim</button>
+              ) : (
+                <p>empty</p>
+              )}
+              {task.status === 'pending' && <p>empty</p>}
+              {task.status === 'claimed' && <button className='bg-[var(--light-accent)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateTask(task.task_id, 'completed', user!.user_id)}>Complete</button>}
+              {task.status === 'completed' && <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateTask(task.task_id, 'claimed', user!.user_id)}>UnComplete</button>}
+              <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleDeleteTask(task.task_id)}><Trash /></button>
             </div>
           )}
           emptyMessage='No tasks to display'
@@ -128,7 +137,7 @@ export default function Group({ groupId }: GroupProps) {
               { member.role === 'creator' && (
                 <p>Full Access</p>
               )}
-              <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick = {() => handleRemoveMember(member.user_id)}>Remove</button>
+              { member.role !== 'creator' && member.user_id !== user!.user_id && <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick = {() => handleDeleteMember(member.user_id)}><Trash /></button>}
             </div>
           )}
           emptyMessage='No members to display'
@@ -140,7 +149,11 @@ export default function Group({ groupId }: GroupProps) {
             <div className='grid grid-cols-5 w-full gap-4 items-center'>
               <p className='text-left truncate col-span-3'>{invite.to_user_id}</p>
               <p>{invite.status}</p>
-              <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick = {() => handleUpdateInvite(invite.invite_id)}>Revoke</button>
+              {invite.status === 'pending' ? (
+                <button className='bg-[var(--danger)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick = {() => handleUpdateInvite(invite.invite_id)}>Revoke</button>
+              ) : (
+                <p>No Action</p>
+              )}
             </div>
           )}
           emptyMessage='No invites to display'
@@ -148,62 +161,21 @@ export default function Group({ groupId }: GroupProps) {
 
         <div className='flex flex-col justify-center items-center p-2 gap-2'>
           <p>Admin operations</p>
-          <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ taskDescription } onChange={ handleTaskDescriptionChange } placeholder='Task description' />
+          <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ taskDescription } onChange={ e => setTaskDescription(e.target.value) } placeholder='Task description' />
           <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={handleCreateTask}>Create Task</button>
-          <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ inviteEmail } onChange={ handleInviteEmailChange } placeholder='Email' />
+          <input className='border border-solid border-[var(--fg-color)] p-2 w-sm rounded-lg focus:outline-none focus:ring-0' value={ inviteEmail } onChange={ e => setInviteEmail(e.target.value) } placeholder='Email' />
           <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={handleCreateInvite}>Create Invite</button>
+          <button className='bg-[var(--danger)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => deleteGroup(groupId)}>Delete Group</button>
         </div>
       </div>
     </div>
   )
 
-  const memberView = (
-    <div className='flex flex-col items-center'>
-      <Header email={email} groupName={groupId} buttonName='Back' onClick={handleExitGroup}/>
-      <div className='flex flex-col jkustify-center items-center p-2 gap-2 max-w-6xl min-w-lg'>
-        <List
-          title='Tasks'
-          items={tasks}
-          renderItems={( task ) => (
-            <div className='grid grid-cols-5 w-full gap-4 items-center'>
-              <p className='text-left truncate col-span-3'>{task.description}</p>
-              <p>{task.status}</p>
-              { task.claimer_id ? (
-                <p>{task.claimer_id}</p>
-              ) : (
-                <button className='bg-[var(--light-accent)] w-16 rounded-sm transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={handleClaimTask}>Claim</button>
-              )}
-            </div>
-          )}
-          emptyMessage='No tasks to display'
-        />
-        <List 
-          title='Members'
-          items={members}
-          renderItems={(member) => (
-            <div className='flex justify-between w-full gap-4 items-center'>
-              <p>{member.user_id}</p>
-              <p>{member.role}</p>
-            </div>
-          )}
-          emptyMessage='No members to display'
-        />
-        <List 
-          title='Invites'
-          items={groupInvites}
-          renderItems={(invite) => (
-            <div className='flex justify-between w-full gap-4 items-center'>
-              <p>{invite.to_user_id}</p>
-              <p>{invite.status}</p>
-            </div>
-          )}
-          emptyMessage='No invites to display'
-        />
-      </div>
-    </div>
-  )
+  const memberView = <p>Member, update this according to admin view when finished and justv delete some stuff</p>
   
-  return(
-    memberView
+  return (
+    <>
+      {adminAccess ? adminView : memberView}
+    </>
   )
 }
