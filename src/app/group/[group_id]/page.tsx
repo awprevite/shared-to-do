@@ -19,7 +19,7 @@ export default async function PrivateGroupPage(props: Props) {
     redirect('/login')
   }
 
-  const params = await props.params
+  const params = props.params
   const group_id = params.group_id;
 
   const { data, error } = await supabase
