@@ -17,6 +17,9 @@ export type Member = {
   group_id: string;
   role: 'creator' | 'admin' | 'member';
   joined_at: string;
+  users?: {
+    email: string
+  }
 }
 
 export type Task = {
@@ -27,6 +30,9 @@ export type Task = {
   claimer_id: string | null;
   status: 'pending' | 'claimed' | 'completed';
   created_at: string;
+  users?: {
+    email: string
+  }
 }
 
 export type Invite = {
@@ -36,4 +42,10 @@ export type Invite = {
   to_user_id: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revoked';
   created_at: string;
+  groups?: {
+    name: string
+  }
+  users?: {
+    email: string
+  }
 }

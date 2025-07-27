@@ -73,36 +73,37 @@ using (
   )
 );
 
-/*
-
-create policy "Users can view pending invites to them"
-on invites
-for select
-using (
-  to_user_id = auth.uid()
-  and status = 'pending'
-);
-
-create policy "Users can update invites they sent to revoked"
-on invites 
-for update
-using (
-  from_user_id = auth.uid()
-  and status = 'pending'
-)
-with check (
-  status = 'revoked'
-);
-
-create policy "Users can update invites they received to accepted or rejected"
-on invites
-for update
-using (
-  to_user_id = auth.uid()
-  and status = 'pending'
-)
-with check (
-  status in ('accepted', 'rejected')
-);
-
+/* 
+Basic RLS
+Checks for authenticated user on all tables
+Could implement stricter checks here, some taken care of in queries themselves
 */
+CREATE POLICY "Allow all access for auth users - users"
+ON users
+FOR ALL
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Allow all access for auth users - groups"
+ON groups
+FOR ALL
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Allow all access for auth users - members"
+ON members
+FOR ALL
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Allow all access for auth users - invites"
+ON invites
+FOR ALL
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Allow all access for auth users - tasks"
+ON tasks
+FOR ALL
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);

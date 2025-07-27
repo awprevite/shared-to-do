@@ -19,12 +19,27 @@ export async function fetchGroups( user_id: string ): Promise<Group[]> {
     .from('members')
     .select('group_id, groups(*)')
     .eq('user_id', user_id)
+    .order('joined_at', { ascending: false })
 
   if (error) throw new Error(error.message)
 
   const groups = data?.map((entry: any) => entry.groups) ?? [];
 
   return groups;
+}
+
+export async function fetchGroup( group_id: string ): Promise<Group> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .eq('group_id', group_id)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  return data
 }
 
 /**

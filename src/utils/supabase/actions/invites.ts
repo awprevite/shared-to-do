@@ -17,11 +17,13 @@ export async function fetchInvites (to_user_id: string): Promise<Invite[]> {
 
   const { data, error } = await supabase
     .from('invites')
-    .select('*')
+    .select('*, groups(name), users!from_user_id(email)')
     .eq('to_user_id', to_user_id)
     .eq('status', 'pending')
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
+    console.log(data)
 
   return data
 }
@@ -39,8 +41,9 @@ export async function fetchGroupInvites( group_id: string ): Promise<Invite[]> {
 
   const { data, error } = await supabase
     .from('invites')
-    .select('*')
+    .select('*, users!from_user_id(email)')
     .eq('group_id', group_id)
+    .order('created_at', { ascending: false })
 
     if (error) throw new Error(error.message)
 

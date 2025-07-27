@@ -17,8 +17,9 @@ export async function fetchTasks( group_id: string ): Promise<Task[]> {
 
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('*, users:claimer_id (email)')
     .eq('group_id', group_id)
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
 
@@ -49,14 +50,9 @@ export async function createTask( group_id: string, description: string, creator
 
   if (error) throw new Error(error.message);
 
-  const { data: allTasks, error: fetchError } = await supabase
-  .from('tasks')
-  .select('*')
-  .eq('group_id', group_id)
+  const tasks = fetchTasks(group_id)
 
-  if (fetchError) throw new Error(fetchError.message)
-
-  return allTasks
+  return tasks
 }
 
 /**
@@ -80,14 +76,9 @@ export async function deleteTask( task_id: string ): Promise<Task[]> {
 
   const group_id = data[0].group_id
 
-  const { data: allTasks, error: fetchError } = await supabase
-  .from('tasks')
-  .select('*')
-  .eq('group_id', group_id)
+  const tasks = fetchTasks(group_id)
 
-  if (fetchError) throw new Error(fetchError.message)
-
-  return allTasks
+  return tasks
 }
 
 /**
@@ -114,19 +105,14 @@ export async function updateTask( task_id: string, new_status: 'pending' | 'clai
     .from('tasks')
     .update(updateFields)
     .eq('task_id', task_id)
-    .select()
+    .select('*')
     .single()
 
   if (error) throw new Error(error.message)
 
   const group_id = data.group_id
 
-  const { data: tasks, error: fetchError } = await supabase
-  .from('tasks')
-  .select('*')
-  .eq('group_id', group_id)
-
-  if (fetchError) throw new Error(fetchError.message)
+  const tasks = fetchTasks(group_id)
 
   return tasks
 }

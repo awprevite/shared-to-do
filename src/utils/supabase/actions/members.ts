@@ -17,8 +17,9 @@ export async function fetchMembers( group_id: string ): Promise<Member[]> {
 
   const { data, error } = await supabase
     .from('members')
-    .select('*')
+    .select('*, users:user_id (email)')
     .eq('group_id', group_id)
+    .order('joined_at', { ascending: true })
 
   if (error) throw new Error(error.message)
 
@@ -70,12 +71,7 @@ export async function updateMemberRole( group_id: string, user_id: string, new_r
 
   if (error) throw new Error(error.message)
 
-  const { data: members, error: fetchError } = await supabase
-    .from('members')
-    .select('*')
-    .eq('group_id', group_id)
-
-  if (fetchError) throw new Error(fetchError.message)
+  const members = fetchMembers(group_id)
 
   return members
 }
@@ -99,12 +95,7 @@ export async function deleteMember(group_id: string, user_id: string): Promise<M
 
   if(error) throw new Error(error.message)
 
-  const { data: remainingMembers, error: fetchError } = await supabase
-    .from('members')
-    .select('*')
-    .eq('group_id', group_id)
+  const members = fetchMembers(group_id)
 
-  if (fetchError) throw new Error(fetchError.message)
-
-  return remainingMembers
+  return members
 }

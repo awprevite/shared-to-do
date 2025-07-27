@@ -2,6 +2,7 @@
 import Header from '../components/Header'
 import List from '../components/List'
 import Notification from '../components/Notification'
+import Loading from '../components/Loading'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signOutUser } from '@/utils/supabase/actions/auth'
@@ -16,6 +17,9 @@ export default function UserPage() {
 
   const router = useRouter();
 
+  const [acting, setActing] = useState(false);
+  const [loading, setLoading] = useState(true)
+  const [done, setDone] = useState(false)
   const [user, setUser] = useState<User | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -41,29 +45,56 @@ export default function UserPage() {
       } catch (error) {
         if (error instanceof Error) triggerNotification(mapSupabaseError(error))
       }
+
+      setDone(true)
+      setTimeout(() => {
+        setLoading(false)
+      }, 300)
     }
 
     fetchData();
   }, [])
 
   const handleSignOut = async () => {
+
+    if(acting) return
+    setActing(true)
+
     try {
       signOutUser();
     } catch (error) {
       if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    } finally { 
+      setActing(false)
     }
   }
 
   const handleCreateGroup = async () => {
+
+    if(acting) return
+    setActing(true)
+
+    if(groupName.length < 1){
+      triggerNotification('Enter a group name before creating a group')
+      setActing(false)
+      return
+    }
+
     try {
       createGroup(groupName, user!.user_id)
       triggerNotification('Group Created')
     } catch (error) {
       if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    } finally {
+      setActing(false)
     }
   }
 
   const handleUpdateInvite = async (invite_id: string, new_status: 'accepted' | 'rejected') => {
+    
+    if(acting) return
+    setActing(true)
+
     try{
       const [invites, groups] = await Promise.all([updateInvite(invite_id, new_status), fetchGroups(user!.user_id)])
       setInvites(invites)
@@ -71,6 +102,8 @@ export default function UserPage() {
       triggerNotification(`Invite ${new_status}`)
     } catch (error) {
       if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    } finally {
+      setActing(false)
     }
   }
 
@@ -79,19 +112,25 @@ export default function UserPage() {
   }
 
   const handleUpdateUser = async (user_id: string, new_status: boolean) => {
+
+    if(acting) return
+    setActing(true)
+
     try {
       setUser(await updateUser(user_id, new_status))
       triggerNotification(`Account ${new_status ? 'activated' : 'deactivated'}`)
     } catch (error) {
       if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+    } finally {
+      setActing(false)
     }
   }
 
-  if(!user) return <p>No user</p>
+  if(loading) return <Loading done={done}/>
 
-  if(!user.active) return (
+  if(!user!.active) return (
     <div className='flex flex-col justify-center items-center p-2 gap-2 h-screen'>
-      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateUser(user.user_id, true)}>Activate Account</button>
+      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateUser(user!.user_id, true)}>Activate Account</button>
     </div>
   )
 
@@ -117,8 +156,15 @@ export default function UserPage() {
             title='Invites'
             items={invites} 
             renderItems={(invite) => (
-              <div className='flex w-full justify-between items-center gap-4'>
-                <p>{invite.group_id}</p>
+              <div className='grid grid-cols-[1fr_1fr_auto] w-full items-start gap-4'>
+
+                  <div className='flex justify-start w-full overflow-hidden'>
+                    <p className='truncate'>{invite.groups!.name}</p>
+                  </div>
+
+                  <div className='flex justify-start w-full overflow-hidden'>
+                    <p className='truncate'>{invite.users!.email}</p>
+                  </div>
                 <div className='flex gap-6'>
                   <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check /></button>
                   <button onClick={() => handleUpdateInvite(invite.invite_id, 'rejected')}><X /></button>
@@ -141,7 +187,7 @@ export default function UserPage() {
           </div>
 
           <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
-            <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 rounded-lg w-full' onClick={() => handleUpdateUser(user.user_id, false)}>Deactivate Account</button>
+            <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 rounded-lg w-full' onClick={() => handleUpdateUser(user!.user_id, false)}>Deactivate Account</button>
           </div>
         </div>
       </div>
