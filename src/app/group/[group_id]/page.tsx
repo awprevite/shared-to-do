@@ -3,13 +3,11 @@ import { createClient } from '@/utils/supabase/server'
 
 import GroupPage from './GroupPage'
 
-type Props = {
-  params: {
-    group_id: string;
-  }
+type PageProps = {
+  params: Promise<{ group_id: string }>
 }
 
-export default async function PrivateGroupPage(props: Props) {
+export default async function PrivateGroupPage({ params }: PageProps) {
 
   const supabase = await createClient()
 
@@ -19,8 +17,7 @@ export default async function PrivateGroupPage(props: Props) {
     redirect('/login')
   }
 
-  const params = props.params
-  const group_id = params.group_id;
+  const { group_id } = await params
 
   const { data, error } = await supabase
     .from('members')
