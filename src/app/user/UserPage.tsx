@@ -166,7 +166,7 @@ export default function UserPage() {
                     <p className='truncate'>{invite.users!.email}</p>
                   </div>
                 <div className='flex gap-6'>
-                  <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check /></button>
+                  <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check className='text-[var(--light-accent)]'/></button>
                   <button onClick={() => handleUpdateInvite(invite.invite_id, 'rejected')}><X /></button>
                 </div>
               </div>

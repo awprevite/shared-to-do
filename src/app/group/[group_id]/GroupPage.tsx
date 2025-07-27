@@ -158,6 +158,7 @@ export default function Group({ groupId }: GroupProps) {
 
     try {
       setMembers(await deleteMember(groupId, user_id))
+      if(user_id === user!.user_id) router.push('user')
       triggerNotification('Member removed')
     } catch (error) {
       if (error instanceof Error) triggerNotification(mapSupabaseError(error))
@@ -233,9 +234,9 @@ export default function Group({ groupId }: GroupProps) {
                     <div
                       className={`w-2 h-2 rounded-full ${
                         task.status === 'pending'
-                          ? 'bg-[var(--fg-color)]'
-                          : task.status === 'claimed'
                           ? 'bg-[var(--neutral)]'
+                          : task.status === 'claimed'
+                          ? 'bg-[var(--fg-color)]'
                           : 'bg-[var(--success)]'
                       }`}
                     />
@@ -366,6 +367,12 @@ export default function Group({ groupId }: GroupProps) {
               <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
                 <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => deleteGroup(groupId)}>Delete Group</button>
               </div>
+
+              {access != 'creator' && (
+                <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
+                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => handleDeleteMember(user!.user_id)}>Leave Group</button>
+                </div>
+              )}
 
             </div>
           </div> 

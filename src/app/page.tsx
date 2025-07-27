@@ -47,7 +47,7 @@ export default function Home() {
           </div>
 
           <div className='flex justify-start items-center p-2 gap-4'>
-            <Square className='min-w-6'/>
+            <button onClick={ () => {router.push('/login')} }><Square className='min-w-6'/></button>
             <p className='text-lg md:text-2xl'>Access your dashboard to get started</p>
           </div>
         </div>
