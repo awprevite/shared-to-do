@@ -1,6 +1,7 @@
 'use client'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 
 export default function Loading({ done }: {done: boolean}) {
   const [progress, setProgress] = useState(0)
@@ -27,7 +28,7 @@ export default function Loading({ done }: {done: boolean}) {
 
   return (
     <div className='z-50 flex flex-col h-screen items-center justify-center bg-[var(--dark-accent)]'>
-      <img className='pb-6' src='/favicon.ico'></img>
+      <Image alt='√' className='pb-6' src='/favicon.ico' width={64} height={64} />
 
       <div className='flex items-center'>
 

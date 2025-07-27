@@ -93,7 +93,7 @@ export async function deleteTask( task_id: string ): Promise<Task[]> {
 export async function updateTask( task_id: string, new_status: 'pending' | 'claimed' | 'completed', claimer_id: string ): Promise<Task[]> {
   const supabase = await createClient()
 
-  let updateFields: Partial<Task> = { status: new_status }
+  const updateFields: Partial<Task> = { status: new_status }
 
   if (new_status === 'pending') {
     updateFields.claimer_id = null

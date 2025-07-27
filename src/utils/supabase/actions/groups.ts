@@ -15,17 +15,26 @@ import { User, Group, Member, Task, Invite } from '@/utils/database/types'
 export async function fetchGroups( user_id: string ): Promise<Group[]> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  const { data: memberships, error: memberError } = await supabase
     .from('members')
-    .select('group_id, groups(*)')
+    .select('group_id')
     .eq('user_id', user_id)
     .order('joined_at', { ascending: false })
 
-  if (error) throw new Error(error.message)
+  if (memberError) throw new Error(memberError.message)
 
-  const groups = data?.map((entry: any) => entry.groups) ?? [];
+  const groupIds = memberships?.map(m => m.group_id) ?? [];
 
-  return groups;
+  if (groupIds.length === 0) return [];
+
+  const { data: groups, error: groupError } = await supabase
+    .from('groups')
+    .select('*')
+    .in('group_id', groupIds);
+
+  if (groupError) throw new Error(groupError.message);
+
+  return groups
 }
 
 export async function fetchGroup( group_id: string ): Promise<Group> {

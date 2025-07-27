@@ -1,5 +1,4 @@
 'use client' 
-import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
 import { signUpUser, signInUser } from '@/utils/supabase/actions/auth'
@@ -8,8 +7,6 @@ import { Square, SquareCheckBig } from 'lucide-react'
 import Notification from '../components/Notification'
 
 export default function Login() {
- 
-  const router = useRouter();
 
   const [users, setUsers] = useState<number>(0);
   const [groups, setGroups] = useState<number>(0);
@@ -108,7 +105,7 @@ export default function Login() {
             {/* Toggle sign in / sign up */}
             { state === 'Sign in' ? (
               <div className='flex justify-start w-full gap-2'>
-                <p className='text-sm'>Don't have an account?</p>
+                <p className='text-sm'>Don&apos;t have an account?</p>
                 <button className='text-sm font-semibold' onClick={() => setState('Sign up')}>Sign Up</button>
               </div>
             ) : (
