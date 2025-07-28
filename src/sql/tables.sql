@@ -60,18 +60,19 @@ alter table members enable row level security;
 alter table tasks enable row level security;
 alter table invites enable row level security;
 
-create policy "Users can view groups they are a member of"
-on groups
-for select
-using (
-  exists (
-    select 1
-    from members
-    where
-      members.group_id = groups.group_id
-      and members.user_id = auth.uid()
-  )
-);
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.users (user_id, email)
+  values (new.id, new.email);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row
+execute procedure public.handle_new_user();
 
 /* 
 Basic RLS

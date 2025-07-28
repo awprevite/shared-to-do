@@ -19,19 +19,6 @@ export async function signUpUser( email: string, password: string ): Promise<voi
   const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
 
   if (authError) throw new Error(authError.message)
-
-  if (authData.user) {
-    const { data: dbData, error: dbError } = await supabase
-      .from('users')
-      .insert([
-        {
-          user_id: authData.user.id,
-          email: authData.user.email
-        }
-      ])
-
-    if (dbError) throw new Error(dbError.message)
-  }
 }
 
 /**
