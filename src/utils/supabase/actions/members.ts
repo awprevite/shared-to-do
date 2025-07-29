@@ -1,11 +1,10 @@
 'use server';
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
+import { Member } from '@/utils/database/types'
 
 /**
- * Fetches the members of a group from the 'members' table
+ * Fetches the members of a group
  * 
  * @param group_id the ID of the group to fetch members for
  * 
@@ -27,7 +26,7 @@ export async function fetchMembers( group_id: string ): Promise<Member[]> {
 }
 
 /**
- * Checks if a user is an admin or creator of a group
+ * Checks if a user is a member, admin or creator of a group
  * 
  * @param group_id the ID of the group to check
  * @param user_id the ID of the user to check
@@ -57,7 +56,7 @@ export async function checkAccess( group_id: string, user_id: string ): Promise<
  * @param user_id the ID of the user whose role is being updated
  * @param new_role the new role to set for the member
  * 
- * @returns {Promise<Member[]>} the updated list of members in the group
+ * @returns {Promise<Member[]>} an array of members in the group
  * @throws {Error} if the query fails
  */
 export async function updateMemberRole( group_id: string, user_id: string, new_role: 'admin' | 'member' ): Promise<Member[]> {
@@ -82,7 +81,7 @@ export async function updateMemberRole( group_id: string, user_id: string, new_r
  * @param group_id the ID of the group the member is in
  * @param user_id the ID of the user to delete from the group
  * 
- * @returns {Promise<Member[]>} an array of the remaining members in the group
+ * @returns {Promise<Member[]>} an array members in the group
  * @throws {Error} if the query fails
  */
 export async function deleteMember(group_id: string, user_id: string): Promise<Member[]> {

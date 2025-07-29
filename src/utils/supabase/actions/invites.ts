@@ -1,8 +1,7 @@
 'use server';
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
+import { Invite } from '@/utils/database/types'
 
 /**
  * Fetches the pending invites to a user
@@ -23,7 +22,6 @@ export async function fetchInvites (to_user_id: string): Promise<Invite[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
-    console.log(data)
 
   return data
 }
@@ -33,7 +31,7 @@ export async function fetchInvites (to_user_id: string): Promise<Invite[]> {
  * 
  * @param group_id the group ID to fetch invites for
  * 
- * @returns {Promise<Invite>} an array of all invites for the group
+ * @returns {Promise<Invite[]>} an array of all invites for the group
  * @throws {Error} if the query fails
  */
 export async function fetchGroupInvites( group_id: string ): Promise<Invite[]> {
@@ -53,11 +51,11 @@ export async function fetchGroupInvites( group_id: string ): Promise<Invite[]> {
 /**
  * Inserts an invite into the 'invites' table if there is not already a pending invite from that group to that user
  * 
- * @param group_id
- * @param from_user_id 
- * @param to_user_email
+ * @param group_id the group ID to fetch invites for
+ * @param from_user_id the sender of the invite
+ * @param to_user_email the recipient of the invite
  * 
- * @returns {Promise<Invite[]>}
+ * @returns {Promise<Invite[]>} an array of all invites for the group
  * @throws {Error} if the query fails
  */
 export async function createInvite( group_id: string, from_user_id: string, to_user_email: string ): Promise<Invite[]> {
@@ -75,7 +73,7 @@ export async function createInvite( group_id: string, from_user_id: string, to_u
 
     const to_user_id = userData.user_id
 
-    const { data: existing, error: checkError } = await supabase
+    const { data: existingInvite, error: existingInviteError } = await supabase
       .from('invites')
       .select('*')
       .eq('group_id', group_id)
@@ -83,8 +81,8 @@ export async function createInvite( group_id: string, from_user_id: string, to_u
       .eq('status', 'pending')
       .maybeSingle()
 
-  if (checkError) throw new Error(checkError.message)
-  if (existing) throw new Error('Invite already pending')
+  if (existingInviteError) throw new Error(existingInviteError.message)
+  if (existingInvite) throw new Error('Invite already pending')
 
   const { data: inviteData, error: inviteError } = await supabase
     .from('invites')
@@ -102,10 +100,11 @@ export async function createInvite( group_id: string, from_user_id: string, to_u
 }
 
 /**
- * Updates the status of an invite, if accepted inserts the user into the 'members' table for the group the invite was for
+ * Updates the status of an invite
+ * If accepted inserts the user into the 'members' table for the group the invite was for
  * 
- * @param invite_id 
- * @param newStatus
+ * @param invite_id the invite ID of the invite to be updated
+ * @param newStatus the new status of the invite
  * 
  * @returns {Promise<Invite[]>} an array of invites either to a user if accepted or rejected, or an array of invites for a group if revoked
  */

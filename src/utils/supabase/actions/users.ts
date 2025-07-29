@@ -1,14 +1,13 @@
 'use server'
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
+import { User } from '@/utils/database/types'
 
 /**
- * Fetches the authenticated user from supabase
+ * Fetches the authenticated user from the 'users' table
  * 
  * @returns {Promise<User | null>} the authenticated user or null if not authenticated
- * @throws {Error} if authentication fails
+ * @throws {Error} if authentication or the query fails
  */
 export async function fetchUser(): Promise<User | null> {
   const supabase = await createClient()
@@ -18,17 +17,17 @@ export async function fetchUser(): Promise<User | null> {
   if (authError) throw new Error(authError.message)
 
   if (authData.user) {
-    const { data: dbData, error: dbError } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('user_id', authData.user.id)
       .single()
 
-    if (dbError) throw new Error(dbError.message)
+    if (userError) throw new Error(userError.message)
 
-    return dbData
+    return userData
   }
-  return null;
+  return null
 }
 
 /**
@@ -37,7 +36,7 @@ export async function fetchUser(): Promise<User | null> {
  * @param user_id the ID of the user to update 
  * @param new_status the new status to set for the user
  * 
- * @returns the updated user data
+ * @returns the updated user
  */
 export async function updateUser( user_id: string, new_status: boolean ): Promise<User> {
   const supabase = await createClient()

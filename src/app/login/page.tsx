@@ -3,16 +3,16 @@ import { useState, useEffect } from 'react'
 import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
 import { signUpUser, signInUser } from '@/utils/supabase/actions/auth'
 import { mapSupabaseError } from '@/utils/supabase/errors/errors'
-import { Square, SquareCheckBig } from 'lucide-react'
+import { Square, SquareCheckBig, Eye, EyeOff } from 'lucide-react'
 import Notification from '../components/Notification'
 
 export default function Login() {
 
-  const [users, setUsers] = useState<number>(0);
-  const [groups, setGroups] = useState<number>(0);
-
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const [users, setUsers] = useState<number>(0)
+  const [groups, setGroups] = useState<number>(0)
+  const [showPassword, setShowPassword] = useState<boolean>(false)
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
   const [state, setState] = useState<'Sign in' | 'Sign up'>('Sign in')
   const [message, setMessage] = useState<string | null>(null)
   const triggerNotification = (message: string) => setMessage(message)
@@ -21,7 +21,6 @@ export default function Login() {
     try {
       if(state === 'Sign in') {
         await signInUser(email, password)
-        //triggerNotification('Signed in)
       } else if (state === 'Sign up') {
         await signUpUser(email, password)
         triggerNotification('Account created, please check your email and confirm your account, then return to this page to log in')
@@ -88,13 +87,17 @@ export default function Login() {
 
             {/* Inputs */}
             <input className='border border-solid border-[var(--fg-color)] p-2 rounded-lg w-full focus:outline-none focus:ring-0' type='email' value={ email } onChange={ e => setEmail(e.target.value) } placeholder='Email' />
-            <input className='border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 rounded-lg w-full focus:outline-none focus:ring-0' type='password' value={ password } onChange={ e => setPassword(e.target.value) } placeholder='Password' />
 
+            <div className='flex justify-between border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 rounded-lg w-full'>
+              <input className='w-full focus:outline-none focus:ring-0' type={showPassword ? 'text' : 'password'} value={ password } onChange={ e => setPassword(e.target.value) } placeholder='Password' />
+              <button onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff /> : <Eye />}</button>
+            </div>
+            
             {/* Reset password or hold space */}
             {state === 'Sign in' ? (
               <div className='flex justify-start w-full gap-2'>
                 <p className='text-sm'>Forgot password?</p>
-                <button className='text-sm font-semibold' onClick={() => triggerNotification('Need to implement reset password')}>Reset</button>
+                <button className='text-sm font-semibold' onClick={() => triggerNotification('Reset password coming soon...')}>Reset</button>
               </div>
             ) : (
               <p className='text-sm'>&nbsp;</p>
@@ -123,7 +126,7 @@ export default function Login() {
             </div>
 
             {/* Google sign in */}
-            <button className='flex justify-center items-center border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 w-full rounded-lg' onClick={ () => triggerNotification('Need to implement authenticate with google') }>
+            <button className='flex justify-center items-center border border-solid border-[var(--fg-color)] p-2 mt-6 mb-2 w-full rounded-lg' onClick={ () => triggerNotification('Authenticate with Google coming soon...') }>
 
               {/* Google logo */}
               <svg className="w-5 h-5 mr-2" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">

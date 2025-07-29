@@ -1,8 +1,7 @@
 'use server';
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
+import { Task } from '@/utils/database/types'
 
 /**
  * Fetches tasks for a group
@@ -33,7 +32,7 @@ export async function fetchTasks( group_id: string ): Promise<Task[]> {
  * @param description the task description
  * @param creator_id the ID of the user who created the task
  * 
- * @returns {Promise<Task[]>} an array of tasks in the group after inserting
+ * @returns {Promise<Task[]>} an array of tasks for the group
  */
 export async function createTask( group_id: string, description: string, creator_id: string ): Promise<Task[]> {
   const supabase = await createClient()
@@ -60,7 +59,7 @@ export async function createTask( group_id: string, description: string, creator
  * 
  * @param task_id the ID of the task to delete
  * 
- * @returns {Promise<Task[]>} an array of tasks in the group after deletion
+ * @returns {Promise<Task[]>} an array of tasks for the group
  * @throws {Error} if the query fails
  */
 export async function deleteTask( task_id: string ): Promise<Task[]> {
@@ -82,12 +81,13 @@ export async function deleteTask( task_id: string ): Promise<Task[]> {
 }
 
 /**
+ * Updates the status and claimer of a task
  * 
- * @param task_id 
- * @param new_status 
- * @param claimer_id 
+ * @param task_id the ID of the task to update
+ * @param new_status the new status of the task
+ * @param claimer_id the new or existing claimer of the task
  * 
- * @returns {Promise<Task[]>}
+ * @returns {Promise<Task[]>} an array of tasks for the group
  * @throws {Error} if the query fails
  */
 export async function updateTask( task_id: string, new_status: 'pending' | 'claimed' | 'completed', claimer_id: string ): Promise<Task[]> {

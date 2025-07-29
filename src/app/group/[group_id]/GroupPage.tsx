@@ -2,6 +2,7 @@
 import Header from '../../components/Header'
 import List from '../../components/List'
 import Loading from '../../components/Loading'
+import Notification from '../../components/Notification'
 import { useRouter } from 'next/navigation'
 import type { User, Task, Member, Invite, Group } from '@/utils/database/types'
 import { useState, useEffect } from 'react'
@@ -13,7 +14,6 @@ import { fetchGroup } from '@/utils/supabase/actions/groups'
 import { mapSupabaseError } from '@/utils/supabase/errors/errors'
 import { deleteGroup } from '@/utils/supabase/actions/groups'
 import { Square, SquareCheckBig, Trash } from 'lucide-react'
-import Notification from '../../components/Notification'
 
 type GroupProps = {
   groupId: string;
@@ -364,9 +364,11 @@ export default function Group({ groupId }: GroupProps) {
                 <button className='bg-[var(--light-accent)] p-2 w-full rounded-lg' onClick={handleCreateInvite}>Create Invite</button>
               </div>
 
-              <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
-                <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => deleteGroup(groupId)}>Delete Group</button>
-              </div>
+              {access === 'creator' && (
+                <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
+                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => deleteGroup(groupId)}>Delete Group</button>
+                </div>
+              )}
 
               {access != 'creator' && (
                 <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
@@ -380,8 +382,127 @@ export default function Group({ groupId }: GroupProps) {
     </>
   )
 
-  const memberView = <p>Member, update this according to admin view when finished and justv delete some stuff</p>
-  
+  const memberView = (
+    <>
+      <Header email={user!.email} groupName={group!.name} buttonName='Back' onClick={() => router.push('/user')}/>
+      <Notification message={message} onClear={() => setMessage(null)} />
+
+        <div className='container mx-auto px-4 flex flex-col items-center'>
+
+          <div className='grid grid-cols-1 gap-6 w-full max-w-8xl min-w-l items-start'>
+
+            {/* Tasks list */}
+            <List
+              title='Tasks'
+              items={tasks}
+              renderItems={( task ) => (
+                <div className='grid grid-cols-[auto_2fr_1fr_2fr] w-full items-center gap-6'>
+
+                  {/* Completetion check box */}
+                  <div className='flex justify-start'>
+                    { task.status === 'pending' ? (
+                      <button onClick={() => triggerNotification('Task must be claimed before it can be completed')}><Square /></button>
+                    ) : task.status === 'claimed' ? (
+                      <button onClick={() => {task.claimer_id === user!.user_id ? handleUpdateTask(task.task_id, 'completed', user!.user_id) : triggerNotification('Cannot complete a task claimed by someone else')}}><Square /></button>
+                    ) : (
+                      <button onClick={() => {task.claimer_id === user!.user_id ? handleUpdateTask(task.task_id, 'claimed', user!.user_id) : triggerNotification('Cannot uncomplete a task completed by someone else')}}><SquareCheckBig /></button>
+                    )}
+                  </div>
+                
+                  <div className='flex justify-start w-full overflow-hidden'>
+                    <p className={`truncate ${task.status === 'completed' ? 'line-through' : ''}`}>{task.description}</p>
+                  </div>
+
+                  {/* Status indicator */}
+                  <div className='flex items-center gap-6 w-full overflow-hidden'>
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        task.status === 'pending'
+                          ? 'bg-[var(--neutral)]'
+                          : task.status === 'claimed'
+                          ? 'bg-[var(--fg-color)]'
+                          : 'bg-[var(--success)]'
+                      }`}
+                    />
+                    <p className='truncate'>{task.status}</p>
+                  </div>
+
+                  {/* Claimer or claim or unclaim option */}
+                  <div className='flex justify-start w-full overflow-hidden pl-1'>
+                    { (task.status === 'claimed' && task.claimer_id === user!.user_id) ? (
+                      <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] w-20 rounded-full' onClick={() => handleUpdateTask(task.task_id, 'pending', user!.user_id)}>UnClaim</button>
+                    ) : task.status === 'claimed' ? (
+                      <p className='truncate'>{task.users!.email}</p>
+                    ) : task.status === 'completed' ? (
+                      <p className='truncate'>{task.users!.email}</p>
+                    ) : (
+                      <button className='bg-[var(--light-accent)] w-20 rounded-full' onClick={() => handleUpdateTask(task.task_id, 'claimed', user!.user_id)}>Claim</button>
+                    )}
+                  </div>
+                </div>
+              )}
+            />
+
+            {/* Members list */}
+            <List 
+              title='Members'
+              items={members}
+              renderItems={(member) => {
+
+                const isMemberSelf = member.user_id === user?.user_id
+                const canModify = access === 'creator' && !isMemberSelf
+
+                return (
+
+                  <div className='grid grid-cols-[2fr_1fr_1fr_1fr] w-full items-center gap-6'>
+
+                    <div className='flex justify-start w-full overflow-hidden'>
+                      <p className='truncate'>{member.users!.email}</p>
+                    </div>
+
+                    <div className='flex items-center gap-6 w-full overflow-hidden'>
+                      <p className='text-lg font-bold'>{member.role[0].toUpperCase()}</p>
+                      <p className='truncate'>{member.role}</p>
+                    </div>
+
+                    <div>
+                      { canModify && member.role === 'member' && (
+                        <button className='bg-[var(--light-accent)] w-20 rounded-full' onClick={() => handleUpdateMemberRole(member.user_id, 'admin')}>Promote</button>
+                      )}
+                      { canModify && member.role === 'admin' && (
+                        <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] w-20 rounded-full' onClick={() => handleUpdateMemberRole(member.user_id, 'member')}>Demote</button>
+                      )}
+                      { member.role === 'creator' && (
+                        <p>Full Access</p>
+                      )}
+                    </div>
+
+                    <div className='flex justify-start w-full overflow-hidden'>
+                      <p className='truncate'>{new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})}</p>
+                    </div>
+                  </div>
+                )
+              }}
+            />
+
+            <div className='flex justify-center items-center w-full'>
+              <hr className='w-full max-w-8xl border-t border my-6' />
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-8xl items-start'>
+
+              {access != 'creator' && (
+                <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
+                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => handleDeleteMember(user!.user_id)}>Leave Group</button>
+                </div>
+              )}
+
+            </div>
+          </div> 
+        </div>
+    </>
+  )
+
   return (
     <>
       {(access === 'creator') || (access === 'admin') ? adminView : memberView}

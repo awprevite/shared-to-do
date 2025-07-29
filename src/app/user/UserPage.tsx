@@ -3,6 +3,7 @@ import Header from '../components/Header'
 import List from '../components/List'
 import Notification from '../components/Notification'
 import Loading from '../components/Loading'
+import Modal from '../components/Modal'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signOutUser } from '@/utils/supabase/actions/auth'
@@ -26,6 +27,7 @@ export default function UserPage() {
   const [groupName, setGroupName] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null)
   const triggerNotification = (message: string) => setMessage(message)
+  const [showModal, setShowModal] = useState<boolean>(true)
 
   useEffect(() => {
 
@@ -130,7 +132,10 @@ export default function UserPage() {
 
   if(!user!.active) return (
     <div className='flex flex-col justify-center items-center p-2 gap-2 h-screen'>
-      <button className='bg-[var(--light-accent)] p-2 w-sm rounded-lg transition-transform duration-300 hover:scale-105 cursor-pointer' onClick={() => handleUpdateUser(user!.user_id, true)}>Activate Account</button>
+      <p className='text-center'>This account has been deactivated</p>
+      <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full max-w-lg'>
+        <button className='bg-[var(--light-accent)] p-2 rounded-lg w-full' onClick={() => handleUpdateUser(user!.user_id, true)}>Activate Account</button>
+      </div>
     </div>
   )
 
@@ -138,6 +143,7 @@ export default function UserPage() {
     <>
       <Header email={user!.email} buttonName='Sign out' onClick={handleSignOut}/>
       <Notification message={message} onClear={() => setMessage(null)} />
+      {/* {showModal && <Modal action='test' onCancel={() => setShowModal(false)} onConfirm={() => alert('Confirm')} />} */}
       
       <div className='container mx-auto px-4 flex flex-col items-center'>
       

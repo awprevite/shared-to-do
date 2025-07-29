@@ -1,8 +1,6 @@
 'use server'
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
 
 /**
  * Gets the total number of users in the 'users' table

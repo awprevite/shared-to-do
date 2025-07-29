@@ -2,7 +2,6 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
-import { signUpUser, signInUser } from '@/utils/supabase/actions/auth'
 import { Square, SquareCheckBig } from 'lucide-react'
 
 export default function Home() {
@@ -12,18 +11,18 @@ export default function Home() {
   const [users, setUsers] = useState<number>(0);
   const [groups, setGroups] = useState<number>(0);
 
-  // useEffect(()  => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const [users, groups] = await Promise.all([totalUsers(), totalGroups()])
-  //       setUsers(users);
-  //       setGroups(groups);
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //     }
-  //   }
-  //   fetchData();
-  // }, [])
+  useEffect(()  => {
+    const fetchData = async () => {
+      try {
+        const [users, groups] = await Promise.all([totalUsers(), totalGroups()])
+        setUsers(users);
+        setGroups(groups);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+    fetchData();
+  }, [])
 
   return (
     <>

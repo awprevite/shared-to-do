@@ -1,8 +1,7 @@
 'use server';
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { User, Group, Member, Task, Invite } from '@/utils/database/types'
+import { Group } from '@/utils/database/types'
 
 /**
  * Fetches the groups that a user is a member of
@@ -15,6 +14,7 @@ import { User, Group, Member, Task, Invite } from '@/utils/database/types'
 export async function fetchGroups( user_id: string ): Promise<Group[]> {
   const supabase = await createClient()
 
+  // Get all group IDs the user is a member of
   const { data: memberships, error: memberError } = await supabase
     .from('members')
     .select('group_id')
@@ -27,6 +27,7 @@ export async function fetchGroups( user_id: string ): Promise<Group[]> {
 
   if (groupIds.length === 0) return [];
 
+  // Get all group information for the selected group IDs
   const { data: groups, error: groupError } = await supabase
     .from('groups')
     .select('*')
@@ -37,6 +38,14 @@ export async function fetchGroups( user_id: string ): Promise<Group[]> {
   return groups
 }
 
+/**
+ * Fetches the group
+ * 
+ * @param group_id the group ID to fetch
+ * 
+ * @returns {Promise<Group>} The group
+ * @throws {Error} if the query fails
+ */
 export async function fetchGroup( group_id: string ): Promise<Group> {
   const supabase = await createClient()
 
@@ -52,7 +61,9 @@ export async function fetchGroup( group_id: string ): Promise<Group> {
 }
 
 /**
- * Inserts a group into the 'groups' table and inserts the creator into the 'members' table and redirects to the group dashhboard
+ * Inserts a group into the 'groups' table
+ * Inserts the creator of the group into the 'members' table
+ * Redirects to the user page
  * 
  * @param name the name of the group
  * @param creator_id the user ID of the creator
@@ -97,7 +108,8 @@ export async function createGroup( name: string , creator_id: string ): Promise<
 }
 
 /**
- * Deletes a group from the 'groups' table and redirects to the user dashboard
+ * Deletes a group from the 'groups' table
+ * Redirects to the user page
  * 
  * @param group_id the ID of the group
  * 
