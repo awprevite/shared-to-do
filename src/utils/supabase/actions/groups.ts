@@ -1,4 +1,5 @@
-'use server';
+'use server'
+
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { Group } from '@/utils/database/types'

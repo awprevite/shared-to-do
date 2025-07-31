@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 type ListProps<T> = {
   title: string;
@@ -9,6 +9,7 @@ type ListProps<T> = {
 export default function List<T>({ title, items, renderItems }: ListProps<T>){
 
   if(items.length === 0) return
+  
   return (
     <div className='flex flex-col justify-start items-start w-full w-full py-6'>
       <p className='font-bold p-2'>{title}</p>

@@ -1,7 +1,6 @@
 export type User = {
   user_id: string;
   email: string;
-  active: boolean;
   created_at: string;
 }
 

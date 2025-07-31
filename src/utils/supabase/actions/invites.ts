@@ -1,4 +1,5 @@
-'use server';
+'use server'
+
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { Invite } from '@/utils/database/types'
@@ -49,7 +50,7 @@ export async function fetchGroupInvites( group_id: string ): Promise<Invite[]> {
 }
 
 /**
- * Inserts an invite into the 'invites' table if there is not already a pending invite from that group to that user
+ * Inserts an invite into the 'invites' table if there is not already a pending or accepted invite from that group to that user
  * 
  * @param group_id the group ID to fetch invites for
  * @param from_user_id the sender of the invite
@@ -73,28 +74,38 @@ export async function createInvite( group_id: string, from_user_id: string, to_u
 
     const to_user_id = userData.user_id
 
+    const { data: existingMember, error:existingMemberError } = await supabase
+      .from('members')
+      .select('*')
+      .eq('group_id', group_id)
+      .eq('user_id', to_user_id)
+      .maybeSingle()
+
+    if (existingMemberError) throw new Error(existingMemberError.message)
+    if (existingMember) throw new Error('User is already in the group')
+
     const { data: existingInvite, error: existingInviteError } = await supabase
       .from('invites')
       .select('*')
       .eq('group_id', group_id)
       .eq('to_user_id', to_user_id)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'accepted'])
       .maybeSingle()
 
-  if (existingInviteError) throw new Error(existingInviteError.message)
-  if (existingInvite) throw new Error('Invite already pending')
+    if (existingInviteError) throw new Error(existingInviteError.message)
+    if (existingInvite) throw new Error('Invite already pending')
 
-  const { data: inviteData, error: inviteError } = await supabase
-    .from('invites')
-    .insert([
-      {
-        group_id: group_id,
-        from_user_id: from_user_id,
-        to_user_id: to_user_id
-      }
-    ])
+    const { data: inviteData, error: inviteError } = await supabase
+      .from('invites')
+      .insert([
+        {
+          group_id: group_id,
+          from_user_id: from_user_id,
+          to_user_id: to_user_id
+        }
+      ])
 
-  if (inviteError) throw new Error(inviteError.message);
+    if (inviteError) throw new Error(inviteError.message);
 
   return fetchGroupInvites(group_id)
 }

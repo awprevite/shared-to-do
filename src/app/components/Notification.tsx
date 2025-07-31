@@ -10,7 +10,7 @@ export default function Notification({ message, onClear} : { message: string | n
     if (!message) return
     const timeout = setTimeout(() => {
       onClear()
-    }, 8000)
+    }, 9000)
 
     return () => clearTimeout(timeout)
   }, [message, onClear])

@@ -1,4 +1,5 @@
 'use server'
+
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { User } from '@/utils/database/types'
@@ -28,27 +29,4 @@ export async function fetchUser(): Promise<User | null> {
     return userData
   }
   return null
-}
-
-/**
- * Updates the user's 'active' attribute in the 'users' table 
- * 
- * @param user_id the ID of the user to update 
- * @param new_status the new status to set for the user
- * 
- * @returns the updated user
- */
-export async function updateUser( user_id: string, new_status: boolean ): Promise<User> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('users')
-    .update({ active: new_status })
-    .eq('user_id', user_id)
-    .select('*')
-    .single()
-
-    if (error) throw new Error(error.message)
-
-    return data
 }

@@ -1,5 +1,5 @@
 'use client'
 
 export default function ErrorPage() {
-  return <p>Sorry, something went wrong</p>
+  return <div className='justify-content align-items'>Sorry, something went wrong</div>
 }

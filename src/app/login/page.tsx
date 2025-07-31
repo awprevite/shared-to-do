@@ -1,32 +1,50 @@
 'use client' 
-import { useState, useEffect } from 'react'
+
+import Notification from '@/app/components/Notification'
+
 import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
 import { signUpUser, signInUser } from '@/utils/supabase/actions/auth'
-import { mapSupabaseError } from '@/utils/supabase/errors/errors'
+
+import { useState, useEffect } from 'react'
 import { Square, SquareCheckBig, Eye, EyeOff } from 'lucide-react'
-import Notification from '../components/Notification'
 
 export default function Login() {
 
-  const [users, setUsers] = useState<number>(0)
-  const [groups, setGroups] = useState<number>(0)
-  const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [state, setState] = useState<'Sign in' | 'Sign up'>('Sign in')
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null) // Message used in the notification
   const triggerNotification = (message: string) => setMessage(message)
 
+  const [users, setUsers] = useState<number>(0)
+  const [groups, setGroups] = useState<number>(0)
+  const [state, setState] = useState<'Sign in' | 'Sign up'>('Sign in')
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [showPassword, setShowPassword] = useState<boolean>(false)
+
   const handleAuthenticate = async () => {
+
+    if(!email.includes('@')){
+      triggerNotification('Please enter a valid email')
+      return
+    }
+
+    if(password.length < 6){
+      triggerNotification('Password must be atleast 6 characters')
+      return
+    }
+
     try {
-      if(state === 'Sign in') {
+      if (state === 'Sign in') {
         await signInUser(email, password)
       } else if (state === 'Sign up') {
         await signUpUser(email, password)
         triggerNotification('Account created, please check your email and confirm your account, then return to this page to log in')
       }
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      if(state === 'Sign in'){
+        triggerNotification('Unable to sign in, email or password may be incorrect, make sure you have an account and have confirmed via email')
+      } else if (state === 'Sign up'){
+        triggerNotification('Unable to sign up, email or password may be invalid, make sure you do not already have an account or try signing in')
+      }
     }
   }
 
@@ -37,7 +55,7 @@ export default function Login() {
         setUsers(users);
         setGroups(groups);
       } catch (error) {
-        if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+        triggerNotification('Unable to fetch number of users and groups')
       }
     }
     fetchData();

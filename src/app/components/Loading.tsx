@@ -1,9 +1,10 @@
 'use client'
+
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
-export default function Loading({ done }: {done: boolean}) {
+export default function Loading({ done }: { done: boolean }) {
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {

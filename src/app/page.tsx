@@ -1,7 +1,9 @@
-'use client' 
+'use client'
+
+import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
+
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { totalUsers, totalGroups } from '@/utils/supabase/actions/stats'
 import { Square, SquareCheckBig } from 'lucide-react'
 
 export default function Home() {
@@ -18,7 +20,7 @@ export default function Home() {
         setUsers(users);
         setGroups(groups);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching number of users and groups')
       }
     }
     fetchData();

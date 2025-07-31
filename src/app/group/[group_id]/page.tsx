@@ -13,12 +13,14 @@ export default async function PrivateGroupPage({ params }: PageProps) {
 
   const { data: authData, error: authError } = await supabase.auth.getUser()
 
+  // Check if logged in
   if ( authError || !authData?.user ) {
     redirect('/login')
   }
 
   const { group_id } = await params
 
+  // Check if user is in the group
   const { data, error } = await supabase
     .from('members')
     .select('group_id')

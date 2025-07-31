@@ -1,33 +1,37 @@
-'use client';
-import Header from '../components/Header'
-import List from '../components/List'
-import Notification from '../components/Notification'
-import Loading from '../components/Loading'
-import Modal from '../components/Modal'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+'use client'
+
+import Header from '@/app/components/Header'
+import List from '@/app/components/List'
+import Loading from '@/app/components/Loading'
+import Notification from '@/app/components/Notification'
+
+import type { User, Invite, Group } from '@/utils/database/types'
+
 import { signOutUser } from '@/utils/supabase/actions/auth'
-import { fetchUser, updateUser } from '@/utils/supabase/actions/users'
+import { fetchUser } from '@/utils/supabase/actions/users'
 import { fetchGroups, createGroup } from '@/utils/supabase/actions/groups'
 import { fetchInvites, updateInvite } from '@/utils/supabase/actions/invites'
-import { mapSupabaseError } from '@/utils/supabase/errors/errors'
-import { User, Invite, Group } from '../../utils/database/types'
+
+import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { Check, X } from 'lucide-react' 
 
-export default function UserPage() {
+export default function UserPage () {
 
   const router = useRouter();
 
-  const [acting, setActing] = useState(false);
-  const [loading, setLoading] = useState(true)
-  const [done, setDone] = useState(false)
-  const [user, setUser] = useState<User | null>(null);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [groupName, setGroupName] = useState<string>('');
-  const [message, setMessage] = useState<string | null>(null)
+  const [acting, setActing] = useState(false) // True while completing an async function, prevent double clicks
+  
+  const [loading, setLoading] = useState(true) // True while loading inital data
+  const [done, setDone] = useState(false) // True once done loading
+
+  const [message, setMessage] = useState<string | null>(null) // Message used in the notification
   const triggerNotification = (message: string) => setMessage(message)
-  const [showModal, setShowModal] = useState<boolean>(true)
+
+  const [user, setUser] = useState<User | null>(null)
+  const [groups, setGroups] = useState<Group[]>([])
+  const [invites, setInvites] = useState<Invite[]>([])
+  const [groupName, setGroupName] = useState<string>('')
 
   useEffect(() => {
 
@@ -45,7 +49,7 @@ export default function UserPage() {
         setInvites(invites)
         setGroups(groups)
       } catch (error) {
-        if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+        triggerNotification('Unable to fetch groups and invites')
       }
 
       setDone(true)
@@ -65,7 +69,7 @@ export default function UserPage() {
     try {
       signOutUser();
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('error')
     } finally { 
       setActing(false)
     }
@@ -83,10 +87,9 @@ export default function UserPage() {
     }
 
     try {
-      createGroup(groupName, user!.user_id)
-      triggerNotification('Group Created')
+      await createGroup(groupName, user!.user_id)
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to create group')
     } finally {
       setActing(false)
     }
@@ -103,7 +106,7 @@ export default function UserPage() {
       setGroups(groups)
       triggerNotification(`Invite ${new_status}`)
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to update invite')
     } finally {
       setActing(false)
     }
@@ -113,37 +116,13 @@ export default function UserPage() {
     router.push(`/group/${groupId}`)
   }
 
-  const handleUpdateUser = async (user_id: string, new_status: boolean) => {
-
-    if(acting) return
-    setActing(true)
-
-    try {
-      setUser(await updateUser(user_id, new_status))
-      triggerNotification(`Account ${new_status ? 'activated' : 'deactivated'}`)
-    } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
-    } finally {
-      setActing(false)
-    }
-  }
-
   if(loading) return <Loading done={done}/>
-
-  if(!user!.active) return (
-    <div className='flex flex-col justify-center items-center p-2 gap-2 h-screen'>
-      <p className='text-center'>This account has been deactivated</p>
-      <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full max-w-lg'>
-        <button className='bg-[var(--light-accent)] p-2 rounded-lg w-full' onClick={() => handleUpdateUser(user!.user_id, true)}>Activate Account</button>
-      </div>
-    </div>
-  )
 
   return (
     <>
       <Header email={user!.email} buttonName='Sign out' onClick={handleSignOut}/>
+      
       <Notification message={message} onClear={() => setMessage(null)} />
-      {/* {showModal && <Modal action='test' onCancel={() => setShowModal(false)} onConfirm={() => alert('Confirm')} />} */}
       
       <div className='container mx-auto px-4 flex flex-col items-center'>
       
@@ -192,9 +171,6 @@ export default function UserPage() {
             <button className='bg-[var(--light-accent)] p-2 rounded-lg w-full' onClick={handleCreateGroup}>Create Group</button>
           </div>
 
-          <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
-            <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 rounded-lg w-full' onClick={() => handleUpdateUser(user!.user_id, false)}>Deactivate Account</button>
-          </div>
         </div>
       </div>
     </>

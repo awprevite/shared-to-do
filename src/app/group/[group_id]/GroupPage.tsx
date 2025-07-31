@@ -1,18 +1,21 @@
-'use client';
-import Header from '../../components/Header'
-import List from '../../components/List'
-import Loading from '../../components/Loading'
-import Notification from '../../components/Notification'
-import { useRouter } from 'next/navigation'
+'use client'
+
+import Header from '@/app/components/Header'
+import List from '@/app/components/List'
+import Loading from '@/app/components/Loading'
+import Notification from '@/app//components/Notification'
+import Modal from '@/app/components/Modal'
+
 import type { User, Task, Member, Invite, Group } from '@/utils/database/types'
-import { useState, useEffect } from 'react'
+
 import { fetchUser } from '@/utils/supabase/actions/users'
+import { fetchGroup, deleteGroup } from '@/utils/supabase/actions/groups'
 import { checkAccess, fetchMembers, updateMemberRole, deleteMember } from '@/utils/supabase/actions/members'
 import { fetchGroupInvites, createInvite, updateInvite } from '@/utils/supabase/actions/invites'
 import { fetchTasks, createTask, deleteTask, updateTask } from '@/utils/supabase/actions/tasks'
-import { fetchGroup } from '@/utils/supabase/actions/groups'
-import { mapSupabaseError } from '@/utils/supabase/errors/errors'
-import { deleteGroup } from '@/utils/supabase/actions/groups'
+
+import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
 import { Square, SquareCheckBig, Trash } from 'lucide-react'
 
 type GroupProps = {
@@ -23,19 +26,32 @@ export default function Group({ groupId }: GroupProps) {
 
   const router = useRouter();
 
-  const [group, setGroup] = useState<Group | null>(null)
-  const [acting, setActing] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [done, setDone] = useState(false)
-  const [access, setAccess] = useState<'member' | 'admin' | 'creator'>();
-  const [taskDescription, setTaskDescription] = useState<string>('');
-  const [inviteEmail, setInviteEmail] = useState<string>('');
+  const [acting, setActing] = useState(false) // True while completing an async function, prevent double clicks
+
+  const [loading, setLoading] = useState(true) // True while loading inital data
+  const [done, setDone] = useState(false) // True once done loading
+
+  const [message, setMessage] = useState<string | null>(null) // Message used in the notification
+  const triggerNotification = (message: string) => setMessage(message)
+
+  const [showModal, setShowModal] = useState<boolean>(false) // True if a destructive action has been initiated
+  const [action, setAction] = useState<string>('') // Action being confirmed in the modal
+  const confirmFunc = useRef<() => void>(() => {}) // Function being run upong confirmation in the modal
+
+  const openModal = (action: string, onConfirm: () => void) => {
+    setAction(action)
+    confirmFunc.current = onConfirm
+    setShowModal(true)
+  }
+
   const [user, setUser] = useState<User | null>(null)
+  const [group, setGroup] = useState<Group | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [members, setMembers] = useState<Member[]>([])
-  const [groupInvites, setGroupInvites] = useState<Invite[]>([]);
-  const [message, setMessage] = useState<string | null>(null)
-  const triggerNotification = (message: string) => setMessage(message)
+  const [groupInvites, setGroupInvites] = useState<Invite[]>([])
+  const [access, setAccess] = useState<'member' | 'admin' | 'creator'>()
+  const [taskDescription, setTaskDescription] = useState<string>('')
+  const [inviteEmail, setInviteEmail] = useState<string>('')
 
   useEffect(() => {
 
@@ -65,7 +81,7 @@ export default function Group({ groupId }: GroupProps) {
         setGroupInvites(invites)
 
       } catch (error) {
-        if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+        triggerNotification('Unable to fetch group info')
       }
 
       setDone(true)
@@ -86,7 +102,7 @@ export default function Group({ groupId }: GroupProps) {
       setTasks(await updateTask(task_id, new_status, claimer_id))
       triggerNotification(`Task status set to ${new_status}`)
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to update task')
     } finally {
       setActing(false)
     }
@@ -108,7 +124,7 @@ export default function Group({ groupId }: GroupProps) {
       setGroupInvites(await createInvite(groupId, user!.user_id, inviteEmail));
       triggerNotification('Invite sent')
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to send invite, user may not have an account, already have a pending invite, or may already be in the group')
     } finally {
       setActing(false)
     }
@@ -123,7 +139,7 @@ export default function Group({ groupId }: GroupProps) {
       setGroupInvites(await updateInvite(invite_id, 'revoked'))
       triggerNotification('invite revoked')
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to update invite')
     } finally {
       setActing(false)
     }
@@ -145,7 +161,7 @@ export default function Group({ groupId }: GroupProps) {
       setTasks(await createTask(groupId, taskDescription, user!.user_id))
       triggerNotification('Task created')
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to create task')
     } finally {
       setActing(false)
     }
@@ -161,7 +177,7 @@ export default function Group({ groupId }: GroupProps) {
       if(user_id === user!.user_id) router.push('user')
       triggerNotification('Member removed')
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to remove member')
     } finally {
       setActing(false)
     }
@@ -176,7 +192,7 @@ export default function Group({ groupId }: GroupProps) {
       setMembers(await updateMemberRole(groupId, user_id, new_role))
       triggerNotification(`Member set to ${new_role}`)
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to update member')
     } finally {
       setActing(false)
     }
@@ -190,7 +206,7 @@ export default function Group({ groupId }: GroupProps) {
       setTasks(await deleteTask(task_id))
       triggerNotification('Task deleted')
     } catch (error) {
-      if (error instanceof Error) triggerNotification(mapSupabaseError(error))
+      triggerNotification('Unable to delete task')
     } finally {
       setActing(false)
     }
@@ -201,7 +217,13 @@ export default function Group({ groupId }: GroupProps) {
   const adminView = (
     <>
       <Header email={user!.email} groupName={group!.name} buttonName='Back' onClick={() => router.push('/user')}/>
+
       <Notification message={message} onClear={() => setMessage(null)} />
+        
+      {showModal && <Modal action={action} onCancel={() => setShowModal(false)} onConfirm={ () => {
+        confirmFunc.current() 
+        setShowModal(false)
+      }} />}
 
         <div className='container mx-auto px-4 flex flex-col items-center'>
 
@@ -212,7 +234,7 @@ export default function Group({ groupId }: GroupProps) {
               title='Tasks'
               items={tasks}
               renderItems={( task ) => (
-                <div className='grid grid-cols-[auto_2fr_1fr_2fr_auto] w-full items-center gap-6'>
+                <div className='grid grid-cols-[auto_2fr_auto_2fr_auto] md:grid-cols-[auto_2fr_1fr_2fr_auto] w-full items-center gap-2'>
 
                   {/* Completetion check box */}
                   <div className='flex justify-start'>
@@ -240,7 +262,7 @@ export default function Group({ groupId }: GroupProps) {
                           : 'bg-[var(--success)]'
                       }`}
                     />
-                    <p className='truncate'>{task.status}</p>
+                    <p className='hidden md:flex truncate'>{task.status}</p>
                   </div>
 
                   {/* Claimer or claim or unclaim option */}
@@ -257,7 +279,7 @@ export default function Group({ groupId }: GroupProps) {
                   </div>
 
                   <div className='flex justify-end'>
-                    <button onClick={() => handleDeleteTask(task.task_id)}><Trash /></button>
+                    <button onClick={() => openModal(`Delete task '${task.description}'`, () => handleDeleteTask(task.task_id))}><Trash /></button>
                   </div>
                 </div>
               )}
@@ -274,7 +296,7 @@ export default function Group({ groupId }: GroupProps) {
 
                 return (
 
-                  <div className='grid grid-cols-[2fr_1fr_1fr_1fr_auto] w-full items-center gap-6'>
+                  <div className='grid grid-cols-[2fr_auto_1fr_auto] md:grid-cols-[2fr_1fr_1fr_1fr_auto] w-full items-center gap-2 md:gap-6'>
 
                     <div className='flex justify-start w-full overflow-hidden'>
                       <p className='truncate'>{member.users!.email}</p>
@@ -282,7 +304,7 @@ export default function Group({ groupId }: GroupProps) {
 
                     <div className='flex items-center gap-6 w-full overflow-hidden'>
                       <p className='text-lg font-bold'>{member.role[0].toUpperCase()}</p>
-                      <p className='truncate'>{member.role}</p>
+                      <p className='hidden md:flex truncate'>{member.role}</p>
                     </div>
 
                     <div>
@@ -293,17 +315,17 @@ export default function Group({ groupId }: GroupProps) {
                         <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] w-20 rounded-full' onClick={() => handleUpdateMemberRole(member.user_id, 'member')}>Demote</button>
                       )}
                       { member.role === 'creator' && (
-                        <p>Full Access</p>
+                        <div className='w-20' />
                       )}
                     </div>
 
-                    <div className='flex justify-start w-full overflow-hidden'>
+                    <div className='hidden md:flex justify-start w-full overflow-hidden'>
                       <p className='truncate'>{new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})}</p>
                     </div>
 
                     <div className='flex justify-end'>
                       {canModify ? (
-                        <button onClick = {() => handleDeleteMember(member.user_id)}><Trash /></button>
+                        <button onClick = {() => openModal(`Remove ${member.users!.email} from the group`, () => handleDeleteMember(member.user_id))}><Trash /></button>
                       ) : (
                         <div className='w-6 h-6' />
                       )}
@@ -322,7 +344,7 @@ export default function Group({ groupId }: GroupProps) {
                 const canModify = access === 'creator'
 
                 return (
-                <div className='grid grid-cols-[_2fr_1fr_1fr] w-full items-center gap-6'>
+                <div className='grid grid-cols-[_2fr_1fr_auto] w-full items-center gap-2 md:gap-6'>
 
                   <div className='flex justify-start w-full overflow-hidden'>
                     <p className='truncate'>{invite.users!.email}</p>
@@ -340,7 +362,7 @@ export default function Group({ groupId }: GroupProps) {
                         <div className='w-6 h-6' />
                       )
                     ) : (
-                      <p>No Action</p>
+                      <div className='w-6 h-6' />
                     )}
                   </div>
                 </div>
@@ -366,13 +388,13 @@ export default function Group({ groupId }: GroupProps) {
 
               {access === 'creator' && (
                 <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
-                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => deleteGroup(groupId)}>Delete Group</button>
+                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => openModal('Delete Group', () => deleteGroup(groupId))}>Delete Group</button>
                 </div>
               )}
 
               {access != 'creator' && (
                 <div className='flex flex-col items-center bg-[var(--dark-accent)] rounded-lg gap-4 p-6 w-full'>
-                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => handleDeleteMember(user!.user_id)}>Leave Group</button>
+                  <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] p-2 w-full rounded-lg' onClick={() => openModal('Leave Group', () => handleDeleteMember(user!.user_id))}>Leave Group</button>
                 </div>
               )}
 
@@ -385,6 +407,7 @@ export default function Group({ groupId }: GroupProps) {
   const memberView = (
     <>
       <Header email={user!.email} groupName={group!.name} buttonName='Back' onClick={() => router.push('/user')}/>
+
       <Notification message={message} onClear={() => setMessage(null)} />
 
         <div className='container mx-auto px-4 flex flex-col items-center'>
@@ -396,7 +419,7 @@ export default function Group({ groupId }: GroupProps) {
               title='Tasks'
               items={tasks}
               renderItems={( task ) => (
-                <div className='grid grid-cols-[auto_2fr_1fr_2fr] w-full items-center gap-6'>
+                <div className='grid grid-cols-[auto_2fr_auto_2fr_auto] md:grid-cols-[auto_2fr_1fr_2fr_auto] w-full items-center gap-2'>
 
                   {/* Completetion check box */}
                   <div className='flex justify-start'>
@@ -424,7 +447,7 @@ export default function Group({ groupId }: GroupProps) {
                           : 'bg-[var(--success)]'
                       }`}
                     />
-                    <p className='truncate'>{task.status}</p>
+                    <p className='hidden md:flex truncate'>{task.status}</p>
                   </div>
 
                   {/* Claimer or claim or unclaim option */}
@@ -454,7 +477,7 @@ export default function Group({ groupId }: GroupProps) {
 
                 return (
 
-                  <div className='grid grid-cols-[2fr_1fr_1fr_1fr] w-full items-center gap-6'>
+                  <div className='grid grid-cols-[2fr_auto_1fr_auto] md:grid-cols-[2fr_1fr_1fr_1fr_auto] w-full items-center gap-2 md:gap-6'>
 
                     <div className='flex justify-start w-full overflow-hidden'>
                       <p className='truncate'>{member.users!.email}</p>
@@ -462,7 +485,7 @@ export default function Group({ groupId }: GroupProps) {
 
                     <div className='flex items-center gap-6 w-full overflow-hidden'>
                       <p className='text-lg font-bold'>{member.role[0].toUpperCase()}</p>
-                      <p className='truncate'>{member.role}</p>
+                      <p className='hidden md:flex truncate'>{member.role}</p>
                     </div>
 
                     <div>
@@ -473,11 +496,11 @@ export default function Group({ groupId }: GroupProps) {
                         <button className='text-[var(--dark-accent)] bg-[var(--fg-color)] w-20 rounded-full' onClick={() => handleUpdateMemberRole(member.user_id, 'member')}>Demote</button>
                       )}
                       { member.role === 'creator' && (
-                        <p>Full Access</p>
+                        <div className='w-20' />
                       )}
                     </div>
 
-                    <div className='flex justify-start w-full overflow-hidden'>
+                    <div className='hidden md:flex justify-start w-full overflow-hidden'>
                       <p className='truncate'>{new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})}</p>
                     </div>
                   </div>

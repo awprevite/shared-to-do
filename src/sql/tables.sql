@@ -1,3 +1,5 @@
+-- Drop everything when resetting database
+-- Then can delete users from supabase auth without error
 drop table invites cascade;
 drop table tasks cascade;
 drop table members cascade;
@@ -10,7 +12,6 @@ drop type invite_status;
 create table users (
   user_id uuid primary key references auth.users(id),
   email text unique not null,
-  active boolean not null default true,
   created_at timestamp default current_timestamp
 );
 
@@ -60,6 +61,7 @@ alter table members enable row level security;
 alter table tasks enable row level security;
 alter table invites enable row level security;
 
+-- Trigger to insert users into the users table once their emails are confirmed
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -108,3 +110,14 @@ ON tasks
 FOR ALL
 USING (auth.uid() IS NOT NULL)
 WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Allow for overal stat polling on home and sign in pages without being logged in
+CREATE POLICY "Allow read"
+ON users
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Allow read_2"
+ON groups
+FOR SELECT
+USING (true);
