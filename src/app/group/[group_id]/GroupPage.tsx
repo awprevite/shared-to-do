@@ -347,7 +347,7 @@ export default function Group({ groupId }: GroupProps) {
                 <div className='grid grid-cols-[_2fr_1fr_auto] w-full items-center gap-2 md:gap-6'>
 
                   <div className='flex justify-start w-full overflow-hidden'>
-                    <p className='truncate'>{invite.users!.email}</p>
+                    <p className='truncate'>{invite.to_user!.email}</p>
                   </div>
 
                   <div className='flex justify-start w-full overflow-hidden'>

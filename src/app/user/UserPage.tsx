@@ -148,7 +148,7 @@ export default function UserPage () {
                   </div>
 
                   <div className='flex justify-start w-full overflow-hidden'>
-                    <p className='truncate'>{invite.users!.email}</p>
+                    <p className='truncate'>{invite.from_user!.email}</p>
                   </div>
                 <div className='flex gap-6'>
                   <button onClick={() => handleUpdateInvite(invite.invite_id, 'accepted')}><Check className='text-[var(--light-accent)]'/></button>

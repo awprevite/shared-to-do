@@ -44,7 +44,10 @@ export type Invite = {
   groups?: {
     name: string
   }
-  users?: {
+  to_user?: {
+    email: string
+  }
+  from_user?: {
     email: string
   }
 }
